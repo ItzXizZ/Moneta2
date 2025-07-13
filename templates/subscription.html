@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription - Moneta</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2d3748;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.2rem;
+        }
+
+        .dashboard {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .current-plan {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f7fafc;
+            border-radius: 15px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .plan-info h3 {
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-info p {
+            color: #718096;
+        }
+
+        .upgrade-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upgrade-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .usage-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #f7fafc;
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-card h4 {
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-limit {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #ed8936 0%, #dd6b20 100%);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #f56565 0%, #e53e3e 100%);
+        }
+
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .plan-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .plan-card.featured {
+            border-color: #667eea;
+            position: relative;
+        }
+
+        .plan-card.featured::before {
+            content: "Most Popular";
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #4299e1;
+            margin-bottom: 1rem;
+        }
+
+        .plan-price span {
+            font-size: 1rem;
+            color: #718096;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .plan-features li {
+            padding: 0.5rem 0;
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .plan-features li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #48bb78;
+            font-weight: 700;
+        }
+
+        .subscribe-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .subscribe-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .subscribe-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .current-plan-badge {
+            background: #48bb78;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            min-width: 400px;
+            max-width: 500px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #718096;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #718096;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 2rem;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+        
+        <div class="header">
+            <h1>Subscription Management</h1>
+            <p>Choose the plan that fits your needs</p>
+        </div>
+
+        <div class="dashboard">
+            <div class="current-plan">
+                <div class="plan-info">
+                    <h3 id="currentPlanName">Loading...</h3>
+                    <p id="currentPlanDescription">Loading plan information...</p>
+                </div>
+                <div>
+                    <button class="upgrade-btn" id="upgradeBtn" onclick="showUpgradeModal()">
+                        Upgrade Plan
+                    </button>
+                </div>
+            </div>
+
+            <div class="usage-stats">
+                <div class="stat-card">
+                    <h4>Messages This Month</h4>
+                    <div class="stat-value" id="messagesUsed">0</div>
+                    <div class="stat-limit" id="messagesLimit">of 0</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="messagesProgress"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h4>API Calls</h4>
+                    <div class="stat-value" id="apiCalls">0</div>
+                    <div class="stat-limit">this month</div>
+                </div>
+                <div class="stat-card">
+                    <h4>AI Model</h4>
+                    <div class="stat-value" style="font-size: 1.2rem;" id="aiModel">Loading...</div>
+                    <div class="stat-limit">current model</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="plans-grid" id="plansGrid">
+            <!-- Plans will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Upgrade Modal -->
+    <div class="modal" id="upgradeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Upgrade to Premium</h2>
+                <button class="close-btn" onclick="closeUpgradeModal()">&times;</button>
+            </div>
+            <div id="modalContent">
+                <p>Are you sure you want to upgrade to the Premium plan?</p>
+                <div style="margin-top: 1.5rem;">
+                    <button class="subscribe-btn" onclick="subscribeToPlan('premium')">
+                        Yes, Upgrade to Premium
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUserData = null;
+        let availablePlans = [];
+
+        // Get authentication token
+        function getAuthToken() {
+            return localStorage.getItem('authToken');
+        }
+
+        // API request helper
+        async function apiRequest(endpoint, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` })
+            };
+
+            const response = await fetch(endpoint, {
+                ...options,
+                headers: { ...headers, ...options.headers }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // Load user subscription data
+        async function loadUserData() {
+            try {
+                const data = await apiRequest('/api/subscription/user-status');
+                currentUserData = data.data;
+                updateUI();
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showError('Failed to load subscription data');
+            }
+        }
+
+        // Load available plans
+        async function loadPlans() {
+            try {
+                const data = await apiRequest('/api/subscription/plans');
+                availablePlans = data.plans;
+                renderPlans();
+            } catch (error) {
+                console.error('Error loading plans:', error);
+                showError('Failed to load subscription plans');
+            }
+        }
+
+        // Update UI with user data
+        function updateUI() {
+            if (!currentUserData) return;
+
+            const { subscription, usage, limits } = currentUserData;
+
+            // Update current plan
+            document.getElementById('currentPlanName').textContent = 
+                subscription.plan_name === 'free' ? 'Free Plan' : 'Premium Plan';
+            document.getElementById('currentPlanDescription').textContent = 
+                subscription.plan_name === 'free' ? 
+                'Basic features with usage limits' : 
+                'Full access to all features';
+
+            // Update usage stats
+            document.getElementById('messagesUsed').textContent = usage.messages_used || 0;
+            document.getElementById('messagesLimit').textContent = 
+                limits.messages_limit ? `of ${limits.messages_limit}` : 'unlimited';
+            document.getElementById('apiCalls').textContent = usage.api_calls_used || 0;
+            document.getElementById('aiModel').textContent = subscription.ai_model || 'gpt-4o-mini';
+
+            // Update progress bar
+            const progressBar = document.getElementById('messagesProgress');
+            if (limits.messages_limit) {
+                const percentage = (usage.messages_used / limits.messages_limit) * 100;
+                progressBar.style.width = `${percentage}%`;
+                
+                if (percentage >= 90) {
+                    progressBar.className = 'progress-fill danger';
+                } else if (percentage >= 70) {
+                    progressBar.className = 'progress-fill warning';
+                } else {
+                    progressBar.className = 'progress-fill';
+                }
+            } else {
+                progressBar.style.width = '100%';
+                progressBar.className = 'progress-fill';
+            }
+
+            // Update upgrade button
+            const upgradeBtn = document.getElementById('upgradeBtn');
+            if (subscription.plan_name === 'premium') {
+                upgradeBtn.textContent = 'Manage Subscription';
+                upgradeBtn.onclick = () => showManageModal();
+            } else {
+                upgradeBtn.textContent = 'Upgrade Plan';
+                upgradeBtn.onclick = () => showUpgradeModal();
+            }
+        }
+
+        // Render subscription plans
+        function renderPlans() {
+            const plansGrid = document.getElementById('plansGrid');
+            plansGrid.innerHTML = '';
+
+            availablePlans.forEach(plan => {
+                const planCard = document.createElement('div');
+                planCard.className = `plan-card ${plan.name === 'premium' ? 'featured' : ''}`;
+                
+                const features = plan.features.features || [];
+                const featuresHTML = features.map(feature => `<li>${feature}</li>`).join('');
+                
+                const isCurrentPlan = currentUserData?.subscription?.plan_name === plan.name;
+                const price = plan.price_cents === 0 ? 'Free' : `$${(plan.price_cents / 100).toFixed(2)}`;
+                
+                planCard.innerHTML = `
+                    <div class="plan-name">${plan.name === 'free' ? 'Free Plan' : 'Premium Plan'}</div>
+                    <div class="plan-price">${price} ${plan.price_cents > 0 ? '<span>/month</span>' : ''}</div>
+                    <ul class="plan-features">
+                        ${featuresHTML}
+                        <li>AI Model: ${plan.ai_model}</li>
+                        <li>Messages: ${plan.monthly_message_limit || 'Unlimited'}</li>
+                    </ul>
+                    ${isCurrentPlan ? 
+                        '<div class="current-plan-badge">Current Plan</div>' :
+                        `<button class="subscribe-btn" onclick="subscribeToPlan('${plan.name}')" ${plan.name === 'free' ? 'disabled' : ''}>
+                            ${plan.name === 'free' ? 'Current Plan' : 'Subscribe'}
+                        </button>`
+                    }
+                `;
+                
+                plansGrid.appendChild(planCard);
+            });
+        }
+
+        // Subscribe to plan
+        async function subscribeToPlan(planName) {
+            try {
+                const response = await apiRequest('/api/subscription/subscribe', {
+                    method: 'POST',
+                    body: JSON.stringify({ plan_name: planName })
+                });
+                
+                if (response.success) {
+                    showSuccess('Successfully subscribed to plan!');
+                    closeUpgradeModal();
+                    loadUserData();
+                    loadPlans();
+                } else {
+                    showError(response.error || 'Subscription failed');
+                }
+            } catch (error) {
+                console.error('Error subscribing:', error);
+                showError('Failed to subscribe to plan');
+            }
+        }
+
+        // Show/hide modals
+        function showUpgradeModal() {
+            document.getElementById('upgradeModal').style.display = 'block';
+        }
+
+        function closeUpgradeModal() {
+            document.getElementById('upgradeModal').style.display = 'none';
+        }
+
+        function showManageModal() {
+            // You can implement subscription management here
+            alert('Subscription management coming soon!');
+        }
+
+        // Show error/success messages
+        function showError(message) {
+            const error = document.createElement('div');
+            error.className = 'error';
+            error.textContent = message;
+            document.body.insertBefore(error, document.body.firstChild);
+            setTimeout(() => error.remove(), 5000);
+        }
+
+        function showSuccess(message) {
+            const success = document.createElement('div');
+            success.className = 'success';
+            success.textContent = message;
+            document.body.insertBefore(success, document.body.firstChild);
+            setTimeout(() => success.remove(), 5000);
+        }
+
+        // Check authentication
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                window.location.href = '/';
+                return false;
+            }
+            return true;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            if (checkAuth()) {
+                loadUserData();
+                loadPlans();
+            }
+        });
+    </script>
+</body>
+</html> 

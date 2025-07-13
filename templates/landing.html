@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moneta - Remember Everything</title>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        :root {
+            --primary-900: #1a0b2e;
+            --primary-800: #2d1b47;
+            --primary-700: #3e2760;
+            --primary-600: #4f3279;
+            --primary-500: #8b5cf6;
+            --primary-400: #a855f7;
+            --primary-300: #c084fc;
+            --primary-200: #ddd6fe;
+            --primary-100: #f3e8ff;
+            
+            --dark-900: #0a0a0a;
+            --dark-800: #111827;
+            --dark-700: #1f2937;
+            --dark-600: #374151;
+            --dark-500: #4b5563;
+            --dark-400: #6b7280;
+            --dark-300: #9ca3af;
+            --dark-200: #d1d5db;
+            --dark-100: #f3f4f6;
+            
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-blur: blur(20px);
+            
+            --gold-accent: #ffd700;
+            --gold-glow: rgba(255, 215, 0, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: radial-gradient(ellipse at center, var(--dark-900) 0%, var(--dark-800) 60%, var(--dark-900) 100%);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 70%, rgba(168, 85, 247, 0.03) 0%, transparent 30%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 1000;
+            padding: 12px 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-400), var(--gold-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 400;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-300);
+            text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-600), var(--primary-400));
+            color: white;
+            border: 1px solid var(--primary-500);
+            box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(168, 85, 247, 0.4);
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-300));
+        }
+
+        .btn-secondary {
+            background: var(--glass-bg);
+            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary-400);
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.2);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 20px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            max-width: 1000px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 700;
+            margin-bottom: 30px;
+            line-height: 1.1;
+            background: linear-gradient(135deg, white 0%, var(--primary-200) 50%, var(--gold-accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(168, 85, 247, 0.3);
+            animation: fadeInUp 1s ease-out;
+            word-break: keep-all;
+            overflow-wrap: normal;
+        }
+
+        .hero p {
+            font-size: clamp(1.2rem, 3vw, 1.6rem);
+            margin-bottom: 50px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            animation: fadeInUp 1s ease-out 0.2s both;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 1s ease-out 0.4s both;
+        }
+
+        .btn-hero {
+            padding: 18px 36px;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            font-weight: 600;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Features Section */
+        .features {
+            padding: 120px 20px;
+            background: linear-gradient(180deg, transparent 0%, rgba(17, 24, 39, 0.5) 100%);
+            position: relative;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: 80px;
+            color: white;
+            background: linear-gradient(135deg, white 0%, var(--primary-200) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 80px;
+        }
+
+        .feature-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            padding: 40px;
+            border-radius: 24px;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary-400);
+            box-shadow: 0 20px 60px rgba(168, 85, 247, 0.2);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 25px;
+            background: linear-gradient(135deg, var(--primary-600), var(--primary-400));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            box-shadow: 0 8px 30px rgba(168, 85, 247, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: white;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card p {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Memory Visualization */
+        .memory-viz {
+            padding: 120px 20px;
+            background: linear-gradient(180deg, rgba(17, 24, 39, 0.5) 0%, var(--dark-900) 100%);
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Memory Network Container */
+        .memory-network-container {
+            max-width: 1000px;
+            margin: 80px auto;
+            height: 500px;
+            position: relative;
+            border-radius: 24px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        .memory-network-header {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 12px 16px;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+
+        .memory-network-header h3 {
+            color: var(--primary-300);
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .memory-network-stats {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            flex-wrap: wrap;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+
+        .stat-item {
+            background: rgba(31, 41, 55, 0.8);
+            backdrop-filter: var(--glass-blur);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .stat-value {
+            color: var(--primary-300);
+            font-weight: 500;
+        }
+
+        #memory-network {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            overflow: hidden;
+            box-shadow: none;
+            z-index: 0;
+        }
+
+        .network-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+            z-index: 2;
+        }
+
+        /* Auth Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 90%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .modal h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-400);
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 30px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.6);
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .memory-network-container {
+                height: 350px;
+                margin: 60px auto;
+            }
+
+            .memory-network-header {
+                top: 10px;
+                right: 10px;
+                padding: 8px 12px;
+            }
+
+            .memory-network-stats {
+                bottom: 10px;
+                right: 10px;
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <div class="logo">Moneta</div>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#how-it-works" class="nav-link">How it Works</a>
+                <a href="#pricing" class="nav-link">Pricing</a>
+            </div>
+            <div class="auth-buttons">
+                <a href="#" class="btn btn-secondary" onclick="openModal('loginModal')">Sign In</a>
+                <a href="#" class="btn btn-primary" onclick="openModal('signupModal')">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Remember<br>Everything</h1>
+            <p>Moneta transforms how AI remembers. Experience human-like memory that learns, connects, and grows stronger with every interaction.</p>
+            <div class="hero-buttons">
+                <a href="#" class="btn btn-primary btn-hero" onclick="openModal('signupModal')">Start Remembering</a>
+                <a href="#features" class="btn btn-secondary btn-hero">Learn More</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Powered by Cognitive Science</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3>Semantic Understanding</h3>
+                    <p>Goes beyond keywords to understand meaning, context, and relationships between concepts using advanced neural networks.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🕸️</div>
+                    <h3>Memory Networks</h3>
+                    <p>Creates interconnected webs of knowledge that mirror human associative memory patterns.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3>Dynamic Reinforcement</h3>
+                    <p>Memories grow stronger through recall, just like human memory. Frequently accessed information becomes more prominent.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Instant Recall</h3>
+                    <p>Lightning-fast semantic search powered by sentence transformers and optimized similarity algorithms.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Personal & Secure</h3>
+                    <p>Your memories are yours alone. Each user gets their own isolated, encrypted memory database.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Context Aware</h3>
+                    <p>Delivers the right memories at the right time based on conversation context and relevance scoring.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Memory Visualization -->
+    <section class="memory-viz" id="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How Memory Networks Work</h2>
+            <p style="font-size: 1.2rem; opacity: 0.8; margin-bottom: 40px; color: rgba(255, 255, 255, 0.7);">Watch how memories connect and strengthen through interaction</p>
+            
+            <!-- Memory Network Container -->
+            <div class="memory-network-container" id="memory-network-container">
+                <div class="memory-network-header">
+                    <h3>🧠 Live Memory Network</h3>
+                </div>
+                
+                <div class="memory-network-stats">
+                    <div class="stat-item">
+                        <span>Memories: </span><span class="stat-value" id="memory-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Connections: </span><span class="stat-value" id="connection-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Active: </span><span class="stat-value" id="active-memories">0</span>
+                    </div>
+                </div>
+                
+                <div id="memory-network">
+                    <div class="network-loading">Loading memory network...</div>
+                </div>
+            </div>
+            
+            <p style="opacity: 0.6; margin-top: 30px; color: rgba(255, 255, 255, 0.6);">Each node represents a memory. Connections show relationships. Brighter nodes indicate stronger, more frequently accessed memories.</p>
+        </div>
+    </section>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('loginModal')">&times;</span>
+            <h2>Welcome Back</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Sign In</button>
+            </form>
+            <p style="text-align: center; margin-top: 20px; color: rgba(255, 255, 255, 0.6);">
+                Don't have an account? <a href="#" onclick="switchModal('loginModal', 'signupModal')" style="color: var(--primary-300);">Sign up</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signupModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('signupModal')">&times;</span>
+            <h2>Create Your Memory</h2>
+            <form id="signupForm">
+                <div class="form-group">
+                    <label for="signupName">Full Name</label>
+                    <input type="text" id="signupName" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" placeholder="Create a strong password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Start Remembering</button>
+            </form>
+            <p style="text-align: center; margin-top: 20px; color: rgba(255, 255, 255, 0.6);">
+                Already have an account? <a href="#" onclick="switchModal('signupModal', 'loginModal')" style="color: var(--primary-300);">Sign in</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Memory Network Variables (from memory_network_javascript.py)
+        let memoryNetwork = null;
+        let networkData = { nodes: [], edges: [] };
+        let activeMemories = new Set();
+        let currentThreshold = 0.35;
+        let savedNodePositions = {};
+        let lastNetworkHash = '';
+        let isInitialLoad = true;
+
+        // Demo memory data for landing page
+        const demoMemories = [
+            { id: 1, content: 'AI Technology', score: 85, tags: ['technology'] },
+            { id: 2, content: 'Machine Learning', score: 78, tags: ['technology'] },
+            { id: 3, content: 'Neural Networks', score: 92, tags: ['cognitive'] },
+            { id: 4, content: 'Memory Formation', score: 88, tags: ['cognitive'] },
+            { id: 5, content: 'Data Processing', score: 75, tags: ['technology'] },
+            { id: 6, content: 'Learning Algorithms', score: 82, tags: ['cognitive'] },
+            { id: 7, content: 'Network Architecture', score: 79, tags: ['technology'] },
+            { id: 8, content: 'Cognitive Science', score: 73, tags: ['academic'] },
+            { id: 9, content: 'Brain Function', score: 90, tags: ['cognitive'] },
+            { id: 10, content: 'Information Storage', score: 77, tags: ['technology'] }
+        ];
+
+        // Initialize memory network for demo
+        function initializeMemoryNetwork() {
+            const container = document.getElementById('memory-network');
+            if (!container) return;
+            
+            // Clear loading text
+            container.innerHTML = '';
+            
+            // Create demo network data
+            createDemoNetworkData();
+            
+            const options = {
+                nodes: {
+                    shape: 'dot',
+                    scaling: { min: 20, max: 80 },
+                    font: {
+                        size: 11,
+                        color: '#ffffff',
+                        face: '-apple-system, SF Pro Display, SF Pro Text, Helvetica Neue, Helvetica, Arial, sans-serif',
+                        strokeWidth: 0,
+                        strokeColor: 'transparent',
+                        align: 'center'
+                    },
+                    borderWidth: 1,
+                    borderWidthSelected: 2,
+                    shadow: {
+                        enabled: true,
+                        color: 'rgba(17,24,39,0.6)',
+                        size: 12,
+                        x: 0,
+                        y: 3
+                    },
+                    margin: { top: 12, right: 12, bottom: 12, left: 12 }
+                },
+                edges: {
+                    width: 1.5,
+                    color: { 
+                        color: 'rgba(168,85,247,0.15)',
+                        highlight: 'rgba(255,215,0,0.9)',
+                        hover: 'rgba(255,215,0,0.7)'
+                    },
+                    smooth: {
+                        type: 'curvedCW',
+                        roundness: 0.2,
+                        forceDirection: 'none'
+                    },
+                    shadow: {
+                        enabled: true,
+                        color: 'rgba(17,24,39,0.3)',
+                        size: 6,
+                        x: 0,
+                        y: 2
+                    },
+                    length: 200,
+                    scaling: { min: 1, max: 6 }
+                },
+                physics: {
+                    enabled: true,
+                    barnesHut: {
+                        gravitationalConstant: -1200,
+                        centralGravity: 0.15,
+                        springLength: 150,
+                        springConstant: 0.02,
+                        damping: 0.12,
+                        avoidOverlap: 0.2
+                    },
+                    maxVelocity: 100,
+                    minVelocity: 0.1,
+                    solver: 'barnesHut',
+                    stabilization: {
+                        enabled: true,
+                        iterations: 1000,
+                        updateInterval: 25,
+                        fit: true
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 150,
+                    zoomView: true,
+                    dragView: true,
+                    dragNodes: true
+                },
+                layout: {
+                    improvedLayout: true,
+                    randomSeed: 2
+                }
+            };
+            
+            memoryNetwork = new vis.Network(container, networkData, options);
+            
+            // Add click interaction
+            memoryNetwork.on('click', function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    const node = networkData.nodes.find(n => n.id === nodeId);
+                    if (node) {
+                        highlightNode(nodeId);
+                    }
+                }
+            });
+
+            // Update stats
+            updateStats();
+            
+            console.log('🧠 Demo memory network initialized');
+        }
+
+        // Create demo network data
+        function createDemoNetworkData() {
+            // Create nodes
+            const nodes = demoMemories.map(memory => ({
+                id: memory.id,
+                label: memory.content.split(' ').slice(0, 2).join(' '), // Shorter labels
+                content: memory.content,
+                score: memory.score,
+                size: 30 + (memory.score * 0.5),
+                color: {
+                    background: `rgba(168, 85, 247, ${0.6 + (memory.score * 0.004)})`,
+                    border: `rgba(255, 255, 255, ${0.8})`,
+                    highlight: {
+                        background: `rgba(255, 215, 0, 0.8)`,
+                        border: 'rgba(255, 255, 255, 0.9)'
+                    }
+                },
+                font: {
+                    color: '#ffffff',
+                    size: 10 + (memory.score * 0.05)
+                }
+            }));
+
+            // Create edges based on similar tags and scores
+            const edges = [];
+            for (let i = 0; i < demoMemories.length; i++) {
+                for (let j = i + 1; j < demoMemories.length; j++) {
+                    const mem1 = demoMemories[i];
+                    const mem2 = demoMemories[j];
+                    
+                    // Create connections based on similarity
+                    const sharedTags = mem1.tags.filter(tag => mem2.tags.includes(tag));
+                    if (sharedTags.length > 0 || Math.random() > 0.7) {
+                        edges.push({
+                            from: mem1.id,
+                            to: mem2.id,
+                            value: sharedTags.length + Math.random(),
+                            color: {
+                                color: `rgba(168, 85, 247, ${0.2 + Math.random() * 0.3})`,
+                                highlight: 'rgba(255, 215, 0, 0.8)'
+                            },
+                            width: 1 + Math.random() * 2
+                        });
+                    }
+                }
+            }
+
+            networkData = { nodes, edges };
+        }
+
+        // Highlight node with animation
+        function highlightNode(nodeId) {
+            const node = networkData.nodes.find(n => n.id === nodeId);
+            if (!node) return;
+
+            // Create temporary highlight
+            const originalColor = { ...node.color };
+            node.color = {
+                background: 'rgba(255, 215, 0, 0.9)',
+                border: 'rgba(255, 255, 255, 1)',
+                highlight: originalColor.highlight
+            };
+
+            memoryNetwork.setData(networkData);
+
+            // Reset after delay
+            setTimeout(() => {
+                node.color = originalColor;
+                memoryNetwork.setData(networkData);
+            }, 2000);
+
+            // Update active memories counter
+            activeMemories.add(nodeId);
+            updateStats();
+        }
+
+        // Update statistics display
+        function updateStats() {
+            document.getElementById('memory-count').textContent = networkData.nodes.length;
+            document.getElementById('connection-count').textContent = networkData.edges.length;
+            document.getElementById('active-memories').textContent = activeMemories.size;
+        }
+
+        // Modal functionality
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function switchModal(currentModal, targetModal) {
+            closeModal(currentModal);
+            openModal(targetModal);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Form handling
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/dashboard';
+                } else {
+                    alert('Login failed: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Login failed. Please try again.');
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters long.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/dashboard';
+                } else {
+                    alert('Registration failed: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Registration failed. Please try again.');
+            }
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Initialize memory network when page loads
+        window.addEventListener('load', function() {
+            setTimeout(initializeMemoryNetwork, 1000); // Delay to ensure vis.js is loaded
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const nav = document.querySelector('.nav');
+            if (window.scrollY > 50) {
+                nav.style.background = 'rgba(255, 255, 255, 0.08)';
+                nav.style.borderBottomColor = 'rgba(255, 255, 255, 0.15)';
+            } else {
+                nav.style.background = 'rgba(255, 255, 255, 0.05)';
+                nav.style.borderBottomColor = 'rgba(255, 255, 255, 0.1)';
+            }
+        });
+
+        // Add some demo network activity
+        setInterval(() => {
+            if (memoryNetwork && networkData.nodes.length > 0) {
+                const randomNodeId = networkData.nodes[Math.floor(Math.random() * networkData.nodes.length)].id;
+                if (Math.random() > 0.8) { // 20% chance every 5 seconds
+                    highlightNode(randomNodeId);
+                }
+            }
+        }, 5000);
+    </script>
+</body>
+</html> 
