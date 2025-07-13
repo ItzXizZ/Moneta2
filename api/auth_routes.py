@@ -6,9 +6,24 @@ Handles user registration, login, and authenticated memory operations.
 
 from flask import Blueprint, request, jsonify, render_template
 from auth_system import auth_system, user_memory_manager, get_auth_system
+from functools import wraps
 
 # Create authentication blueprint
 auth_bp = Blueprint('auth', __name__)
+
+# Conditional decorator for auth requirements
+def require_auth_if_available(f):
+    """Decorator that requires auth if auth_system is available, otherwise allows access"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if auth_system is None:
+            # If auth system is not available, allow access with dummy user
+            request.current_user = {'id': 'anonymous', 'email': 'anonymous@example.com'}
+            return f(*args, **kwargs)
+        else:
+            # Use the actual auth system
+            return auth_system.require_auth(f)(*args, **kwargs)
+    return decorated_function
 
 @auth_bp.route('/')
 def landing_page():
@@ -97,7 +112,7 @@ def login():
         return jsonify({'error': 'Login failed'}), 500
 
 @auth_bp.route('/api/auth/verify', methods=['GET'])
-@auth_system.require_auth
+@require_auth_if_available
 def verify_token():
     """Verify JWT token and return user info."""
     return jsonify({
@@ -106,7 +121,7 @@ def verify_token():
     }), 200
 
 @auth_bp.route('/api/auth/logout', methods=['POST'])
-@auth_system.require_auth
+@require_auth_if_available
 def logout():
     """Logout user (client-side token removal)."""
     return jsonify({
@@ -117,7 +132,7 @@ def logout():
 # Memory Management Routes (User-specific)
 
 @auth_bp.route('/api/memories', methods=['GET'])
-@auth_system.require_auth
+@require_auth_if_available
 def get_user_memories():
     """Get all memories for the authenticated user."""
     try:
@@ -137,7 +152,7 @@ def get_user_memories():
         return jsonify({'error': 'Failed to retrieve memories'}), 500
 
 @auth_bp.route('/api/memories', methods=['POST'])
-@auth_system.require_auth
+@require_auth_if_available
 def add_user_memory():
     """Add a new memory for the authenticated user."""
     try:
@@ -170,7 +185,7 @@ def add_user_memory():
         return jsonify({'error': 'Failed to add memory'}), 500
 
 @auth_bp.route('/api/memories/search', methods=['GET'])
-@auth_system.require_auth
+@require_auth_if_available
 def search_user_memories():
     """Search memories for the authenticated user."""
     try:
@@ -196,7 +211,7 @@ def search_user_memories():
         return jsonify({'error': 'Failed to search memories'}), 500
 
 @auth_bp.route('/api/user/profile', methods=['GET'])
-@auth_system.require_auth
+@require_auth_if_available
 def get_user_profile():
     """Get user profile information."""
     try:

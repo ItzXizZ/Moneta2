@@ -265,5 +265,12 @@ class SubscriptionService:
             "limits": limits
         }
 
-# Create global instance
-subscription_service = SubscriptionService() 
+# Create global instance with lazy initialization
+subscription_service = None
+
+def get_subscription_service():
+    """Get subscription service instance with lazy initialization"""
+    global subscription_service
+    if subscription_service is None:
+        subscription_service = SubscriptionService()
+    return subscription_service 

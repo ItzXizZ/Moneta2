@@ -2,7 +2,7 @@
 
 from config import config
 from services.memory_search_service import memory_search_service
-from services.subscription_service import subscription_service
+from services.subscription_service import get_subscription_service
 
 class OpenAIService:
     """Service for OpenAI API interactions"""
@@ -18,7 +18,7 @@ class OpenAIService:
         
         # Check user's subscription and usage limits
         if user_id:
-            usage_check = subscription_service.can_user_chat(user_id)
+            usage_check = get_subscription_service().can_user_chat(user_id)
             if not usage_check['can_chat']:
                 return f"I apologize, but you've reached your monthly message limit ({usage_check['messages_limit']} messages). Please upgrade to Premium for unlimited messages.", []
         
@@ -62,7 +62,7 @@ class OpenAIService:
             # Get AI model based on user's subscription
             ai_model = "gpt-4o-mini"  # Default for free users
             if user_id:
-                ai_model = subscription_service.get_ai_model_for_user(user_id)
+                ai_model = get_subscription_service().get_ai_model_for_user(user_id)
             
             # Generate response
             response = self.client.chat.completions.create(
@@ -77,7 +77,7 @@ class OpenAIService:
             
             # Track usage for the user
             if user_id:
-                subscription_service.track_usage(user_id, messages_increment=1, api_calls_increment=1)
+                get_subscription_service().track_usage(user_id, messages_increment=1, api_calls_increment=1)
             
             return response.choices[0].message.content.strip(), memory_context
             
