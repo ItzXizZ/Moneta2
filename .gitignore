@@ -54,5 +54,4 @@ Thumbs.db
 
 # API Keys (if any)
 .env
-config.py
 secrets.py 
