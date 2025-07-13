@@ -81,8 +81,11 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
+    # For Render deployment, we need to bind to 0.0.0.0 and use PORT from environment
+    import os
+    port = int(os.environ.get('PORT', config.port))
     app.run(
         debug=config.debug, 
-        host=config.host, 
-        port=config.port
+        host='0.0.0.0', 
+        port=port
     ) 

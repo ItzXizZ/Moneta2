@@ -19,11 +19,11 @@ def start_memory_file_watcher(memory_manager, path):
             
         def on_modified(self, event):
             # Only process memories.json files
-            if not event.src_path.endswith('memories.json'):
+            if not str(event.src_path).endswith('memories.json'):
                 return
                 
             # Skip temporary, backup, and lock files
-            if event.src_path.endswith(('.tmp', '.backup', '.lock')):
+            if str(event.src_path).endswith(('.tmp', '.backup', '.lock')):
                 return
                 
             current_time = time.time()
@@ -70,19 +70,35 @@ def start_memory_file_watcher(memory_manager, path):
             except Exception as e:
                 print(f"[Watcher] ❌ Error during reload: {e}")
                     
-    observer = Observer()
-    handler = MemoryFileHandler()
-    observer.schedule(handler, path=os.path.dirname(path), recursive=False)
-    observer.daemon = True
-    observer.start()
-    print(f"[Watcher] 👀 Watching {path} for changes...")
-    
-    return observer
+    try:
+        observer = Observer()
+        handler = MemoryFileHandler()
+        watch_dir = os.path.dirname(path)
+        
+        # Check if directory exists before watching
+        if not os.path.exists(watch_dir):
+            print(f"[Watcher] ⚠️  Directory {watch_dir} does not exist, skipping file watcher")
+            return None
+            
+        observer.schedule(handler, path=watch_dir, recursive=False)
+        observer.daemon = True
+        observer.start()
+        print(f"[Watcher] 👀 Watching {path} for changes...")
+        
+        return observer
+    except Exception as e:
+        print(f"[Watcher] ❌ Failed to start file watcher: {e}")
+        return None
 
 def setup_file_watcher(memory_manager, memory_json_path):
     """Setup file watcher if memory manager is available"""
     if not memory_manager:
         print("⚠️ Memory manager not available, skipping file watcher")
+        return None
+    
+    # Skip file watcher in production/cloud environments
+    if os.getenv('RENDER') or os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('HEROKU_APP_NAME'):
+        print("⚠️ Running in cloud environment, skipping file watcher")
         return None
     
     try:
