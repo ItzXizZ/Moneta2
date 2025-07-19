@@ -17,19 +17,25 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = config.jwt_secret
 
-    # Combine all UI components into the complete template
-    COMPLETE_TEMPLATE = CHAT_INTERFACE_TEMPLATE.replace(
-        '''            <div id="memory-network-container">
-                    <!-- This will be populated by the memory network UI component -->
-                </div>''',
-        MEMORY_NETWORK_UI_TEMPLATE
-    ).replace(
-        '</head>',
-        f'<style>{MEMORY_NETWORK_CSS}</style></head>'
-    ).replace(
-        '</body>',
-        f'{CHAT_JAVASCRIPT}{MEMORY_NETWORK_JAVASCRIPT}</body>'
-    )
+    # Function to create the complete template dynamically
+    def create_complete_template():
+        """Create the complete template with latest JavaScript"""
+        from ui.chat_javascript import CHAT_JAVASCRIPT
+        from ui.memory_network_javascript import MEMORY_NETWORK_JAVASCRIPT
+        
+        return CHAT_INTERFACE_TEMPLATE.replace(
+            '''            <!-- Memory Network Section -->
+            <div id="memory-network-container">
+                <!-- This will be populated by the memory network UI component -->
+            </div>''',
+            MEMORY_NETWORK_UI_TEMPLATE
+        ).replace(
+            '</head>',
+            f'<style>{MEMORY_NETWORK_CSS}</style></head>'
+        ).replace(
+            '</body>',
+            f'{CHAT_JAVASCRIPT}{MEMORY_NETWORK_JAVASCRIPT}</body>'
+        )
 
     @app.route('/chat')
     def chat_interface():
@@ -37,11 +43,12 @@ def create_app():
         try:
             from auth_system import get_auth_system
             auth_system, _ = get_auth_system()
-            # Your chat interface logic here
-            return render_template_string(COMPLETE_TEMPLATE)
+            # Return the chat interface template with latest JavaScript
+            return render_template_string(create_complete_template())
         except Exception as e:
             print(f"Error in chat interface: {e}")
-            return render_template_string(COMPLETE_TEMPLATE)
+            # Return the template even if auth system fails
+            return render_template_string(create_complete_template())
 
     @app.route('/debug')
     def debug_auth():
@@ -56,8 +63,21 @@ def create_app():
 
     @app.route('/')
     def index():
-        """Main page route"""
-        return redirect(url_for('chat_interface'))
+        """Main page route - Landing page with authentication"""
+        return render_template('landing.html')
+
+    @app.route('/dashboard')
+    def dashboard():
+        """Dashboard route - User dashboard (requires authentication)"""
+        try:
+            from auth_system import get_auth_system
+            auth_system, _ = get_auth_system()
+            # Return the dashboard template
+            return render_template('dashboard.html')
+        except Exception as e:
+            print(f"Error in dashboard: {e}")
+            # Return the dashboard template even if auth fails for now
+            return render_template('dashboard.html')
 
     # Register API routes
     register_auth_routes(app)

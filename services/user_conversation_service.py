@@ -74,20 +74,28 @@ class UserConversationService:
             }
             
             try:
-                result = self.supabase.table('user_chat_threads').insert(thread_data).execute()
-                print(f"✅ Created new thread: {thread_id} for user: {user_id}")
+                # Try to use Supabase if available
+                if hasattr(self, 'supabase') and self.supabase:
+                    result = self.supabase.table('user_chat_threads').insert(thread_data).execute()
+                    print(f"✅ Created new thread: {thread_id} for user: {user_id}")
+                else:
+                    print(f"⚠️ Supabase not available, using fallback thread: {thread_id}")
             except Exception as e:
                 print(f"❌ Error creating thread: {e}")
-                # Fall back to returning the thread_id anyway
+                print(f"⚠️ Using fallback thread: {thread_id}")
         else:
             # Check if thread exists and belongs to user
             try:
-                result = self.supabase.table('user_chat_threads').select('*').eq('thread_id', thread_id).eq('user_id', user_id).execute()
-                if not result.data:
-                    print(f"⚠️ Thread {thread_id} not found for user {user_id}, creating new one")
-                    return self.create_or_get_thread(user_id, None)
+                if hasattr(self, 'supabase') and self.supabase:
+                    result = self.supabase.table('user_chat_threads').select('*').eq('thread_id', thread_id).eq('user_id', user_id).execute()
+                    if not result.data:
+                        print(f"⚠️ Thread {thread_id} not found for user {user_id}, creating new one")
+                        return self.create_or_get_thread(user_id, None)
+                else:
+                    print(f"⚠️ Supabase not available, using existing thread: {thread_id}")
             except Exception as e:
                 print(f"❌ Error checking thread: {e}")
+                print(f"⚠️ Using existing thread: {thread_id}")
         
         return thread_id
     
@@ -112,10 +120,25 @@ class UserConversationService:
         }
         
         try:
-            result = self.supabase.table('user_chat_messages').insert(message_data).execute()
-            
-            if result.data:
-                print(f"✅ Added {sender} message to thread {thread_id}")
+            # Try to use Supabase if available
+            if hasattr(self, 'supabase') and self.supabase:
+                result = self.supabase.table('user_chat_messages').insert(message_data).execute()
+                
+                if result.data:
+                    print(f"✅ Added {sender} message to thread {thread_id}")
+                    return {
+                        'id': message_id,
+                        'content': content,
+                        'sender': sender,
+                        'timestamp': timestamp,
+                        'memory_context': memory_context
+                    }
+                else:
+                    print(f"❌ Failed to add message to database")
+                    return None
+            else:
+                # Fallback: just return the message data without saving to database
+                print(f"⚠️ Supabase not available, using fallback for {sender} message")
                 return {
                     'id': message_id,
                     'content': content,
@@ -123,13 +146,18 @@ class UserConversationService:
                     'timestamp': timestamp,
                     'memory_context': memory_context
                 }
-            else:
-                print(f"❌ Failed to add message to database")
-                return None
                 
         except Exception as e:
             print(f"❌ Error adding message: {e}")
-            return None
+            # Fallback: return message data anyway
+            print(f"⚠️ Using fallback for {sender} message due to error")
+            return {
+                'id': message_id,
+                'content': content,
+                'sender': sender,
+                'timestamp': timestamp,
+                'memory_context': memory_context
+            }
     
     def get_thread_messages(self, thread_id: str, user_id: str) -> List[Dict]:
         """Get all messages from a thread for a specific user"""

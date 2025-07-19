@@ -19,8 +19,8 @@ MEMORY_NETWORK_UI_TEMPLATE = '''
         </div>
         <div class="threshold-controls">
             <label for="threshold-slider" style="color: var(--gray-400); font-size: 0.9rem;">Threshold:</label>
-            <input type="range" id="threshold-slider" class="threshold-slider" min="0.1" max="0.8" step="0.05" value="0.35">
-            <span id="threshold-value" style="color: var(--primary-400); font-size: 0.9rem;">0.35</span>
+            <input type="range" id="threshold-slider" class="threshold-slider" min="0.2" max="0.8" step="0.05" value="0.4">
+            <span id="threshold-value" style="color: var(--primary-400); font-size: 0.9rem;">0.4</span>
         </div>
     </div>
     
@@ -54,8 +54,8 @@ MEMORY_NETWORK_CSS = '''
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: transparent;
-    backdrop-filter: none;
+    background: radial-gradient(ellipse at center, rgba(10, 10, 10, 0.95) 0%, rgba(17, 24, 39, 0.90) 60%, rgba(5, 5, 5, 0.97) 100%);
+    backdrop-filter: blur(10px);
     border: none;
     border-radius: 0;
     padding: 0;
@@ -63,7 +63,7 @@ MEMORY_NETWORK_CSS = '''
     display: flex;
     flex-direction: column;
     overflow: visible;
-    z-index: 1;
+    z-index: 500;
     pointer-events: auto;
 }
 
@@ -233,11 +233,11 @@ MEMORY_NETWORK_CSS = '''
     height: 100vh;
     border: none;
     border-radius: 0;
-    background: radial-gradient(ellipse at center, rgba(10, 10, 10, 0.98) 0%, rgba(17, 24, 39, 0.95) 60%, rgba(5, 5, 5, 0.99) 100%);
+    background: transparent;
     backdrop-filter: none;
     overflow: hidden;
     box-shadow: none;
-    z-index: 0;
+    z-index: 1;
 }
 
 #memory-network::before {

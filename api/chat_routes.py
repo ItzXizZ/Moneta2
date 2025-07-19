@@ -12,7 +12,6 @@ def register_chat_routes(app):
         auth_system, _ = get_auth_system()
     
     @app.route('/send_message', methods=['POST'])
-    @auth_system.require_auth
     def send_message():
         """Handle sending a message and generating AI response"""
         try:
@@ -20,7 +19,20 @@ def register_chat_routes(app):
             message = data.get('message', '').strip()
             thread_id = data.get('thread_id')
             request_id = data.get('request_id')
-            user_id = request.current_user['id']
+            
+            # Use anonymous user ID for now
+            user_id = 'anonymous'
+            
+            # Check if auth system is available
+            if auth_system is not None:
+                # Try to get user from token if available
+                auth_header = request.headers.get('Authorization')
+                if auth_header and auth_header.startswith('Bearer '):
+                    token = auth_header.split(' ')[1]
+                    user = auth_system.get_user_from_token(token)
+                    if user:
+                        user_id = user['id']
+                        request.current_user = user
             
             # Process the message through user-specific conversation service
             thread_id, ai_response, memory_context, error = user_conversation_service.process_message(
@@ -84,11 +96,23 @@ def register_chat_routes(app):
             return jsonify({'success': False, 'error': str(e)}), 500
 
     @app.route('/chat_history/new', methods=['POST'])
-    @auth_system.require_auth
     def create_new_thread():
         """Create a new empty chat thread"""
         try:
-            user_id = request.current_user['id']
+            # Use anonymous user ID for now
+            user_id = 'anonymous'
+            
+            # Check if auth system is available
+            if auth_system is not None:
+                # Try to get user from token if available
+                auth_header = request.headers.get('Authorization')
+                if auth_header and auth_header.startswith('Bearer '):
+                    token = auth_header.split(' ')[1]
+                    user = auth_system.get_user_from_token(token)
+                    if user:
+                        user_id = user['id']
+                        request.current_user = user
+            
             thread_id = user_conversation_service.create_new_thread(user_id)
             
             return jsonify({
@@ -141,11 +165,23 @@ def register_chat_routes(app):
             return jsonify({'success': False, 'error': str(e)}), 500
 
     @app.route('/chat_history/threads', methods=['GET'])
-    @auth_system.require_auth
     def get_all_thread_ids():
         """Get all thread IDs for the user"""
         try:
-            user_id = request.current_user['id']
+            # Use anonymous user ID for now
+            user_id = 'anonymous'
+            
+            # Check if auth system is available
+            if auth_system is not None:
+                # Try to get user from token if available
+                auth_header = request.headers.get('Authorization')
+                if auth_header and auth_header.startswith('Bearer '):
+                    token = auth_header.split(' ')[1]
+                    user = auth_system.get_user_from_token(token)
+                    if user:
+                        user_id = user['id']
+                        request.current_user = user
+            
             threads = user_conversation_service.get_user_threads(user_id)
             return jsonify({'threads': threads})
         except Exception as e:

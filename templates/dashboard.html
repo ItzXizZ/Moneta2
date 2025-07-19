@@ -552,7 +552,8 @@
             try {
                 const token = localStorage.getItem('authToken');
                 if (!token) {
-                    window.location.href = '/';
+                    console.log('⚠️ No authentication token found - showing demo mode');
+                    showDemoMode();
                     return;
                 }
 
@@ -580,7 +581,18 @@
                         const joinDate = new Date(user.created_at || Date.now());
                         const daysSince = Math.floor((Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24));
                         animateCounter('daysSinceJoined', 0, daysSince, 1400);
+                    } else {
+                        console.log('⚠️ Profile data not available - showing demo mode');
+                        showDemoMode();
                     }
+                } else if (profileResponse.status === 401) {
+                    console.log('⚠️ Authentication failed - showing demo mode');
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('user');
+                    showDemoMode();
+                } else {
+                    console.log('⚠️ Profile request failed - showing demo mode');
+                    showDemoMode();
                 }
 
                 // Load recent memories
@@ -594,11 +606,16 @@
                     const memoriesData = await memoriesResponse.json();
                     if (memoriesData.success) {
                         displayRecentMemories(memoriesData.memories);
+                    } else {
+                        displayRecentMemories([]);
                     }
+                } else {
+                    displayRecentMemories([]);
                 }
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+                showDemoMode();
             }
         }
 
@@ -648,6 +665,42 @@
             localStorage.removeItem('authToken');
             localStorage.removeItem('user');
             window.location.href = '/';
+        }
+
+        // Show demo mode when authentication is not available
+        function showDemoMode() {
+            document.getElementById('userName').textContent = 'Demo User';
+            document.getElementById('userEmail').textContent = 'demo@example.com';
+            
+            // Show demo stats
+            animateCounter('memoryCount', 0, 11, 1000);
+            animateCounter('avgScore', 0, 8.5, 1200, 1);
+            animateCounter('daysSinceJoined', 0, 1, 1400);
+            
+            // Show demo memories
+            const demoMemories = [
+                {
+                    content: "Python is a high-level programming language known for its simplicity and readability.",
+                    score: 9.2,
+                    created_at: new Date().toISOString()
+                },
+                {
+                    content: "Machine learning is a subset of artificial intelligence that enables computers to learn without being explicitly programmed.",
+                    score: 8.8,
+                    created_at: new Date().toISOString()
+                },
+                {
+                    content: "Flask is a lightweight web framework for Python that makes it easy to build web applications.",
+                    score: 8.5,
+                    created_at: new Date().toISOString()
+                }
+            ];
+            displayRecentMemories(demoMemories);
+            
+            // Update logout button
+            const logoutBtn = document.querySelector('.logout-btn');
+            logoutBtn.textContent = 'Go to Login';
+            logoutBtn.onclick = () => window.location.href = '/';
         }
 
         // Initialize dashboard

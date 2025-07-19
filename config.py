@@ -30,6 +30,10 @@ class Config:
         self.memory_manager = None
         self.memory_json_path = 'memory_data.json'
         
+        # Session memory queue for real-time updates
+        self.session_new_memories = []
+        self.session_new_memories_lock = threading.Lock()
+        
         # Memory search configuration (optimized for full ML version)
         self.min_relevance_threshold = 0.7  # Higher threshold for better quality with ML
         self.max_search_results = 15        # More results with powerful ML search

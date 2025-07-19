@@ -4,7 +4,7 @@ MEMORY_NETWORK_JAVASCRIPT = '''
     let memoryNetwork = null;
     let networkData = { nodes: [], edges: [] };
     let activeMemories = new Set();
-    let currentThreshold = 0.35;
+    let currentThreshold = 0.4;  // Updated default threshold
 
     // Position persistence and incremental updates
     let savedNodePositions = {};
@@ -32,7 +32,8 @@ MEMORY_NETWORK_JAVASCRIPT = '''
         if (response.status === 401) {
             localStorage.removeItem('authToken');
             localStorage.removeItem('user');
-            window.location.href = '/';
+            // Don't redirect for now - just log the error
+            console.log('⚠️ Authentication error in memory network - continuing without auth');
             return true;
         }
         return false;
@@ -351,6 +352,25 @@ MEMORY_NETWORK_JAVASCRIPT = '''
         }
         
         const container = document.getElementById('memory-network');
+        
+        if (!container) {
+            console.error('❌ Memory network element not found! Retrying in 500ms...');
+            console.log('🔍 Available elements with "memory" in ID:', 
+                Array.from(document.querySelectorAll('[id*="memory"]')).map(el => el.id));
+            
+            // Check if the container exists
+            const containerDiv = document.getElementById('memory-network-container');
+            if (containerDiv) {
+                console.log('✅ Memory network container found, but inner element missing');
+                console.log('📋 Container HTML:', containerDiv.innerHTML);
+            } else {
+                console.log('❌ Memory network container also not found');
+            }
+            
+            // Retry after a short delay
+            setTimeout(initializeMemoryNetwork, 500);
+            return;
+        }
         
         // Clear any loading text first
         container.innerHTML = '<div class="memory-activity-indicator" id="activity-indicator">🔥 Memory Activity</div>';
@@ -694,9 +714,13 @@ MEMORY_NETWORK_JAVASCRIPT = '''
         }
         
         // Update stats
-        document.getElementById('memory-count').textContent = newData.nodes.length;
-        document.getElementById('connection-count').textContent = newData.edges.length;
-        document.getElementById('active-memories').textContent = activeMemories.size;
+        const memoryCountEl = document.getElementById('memory-count');
+        const connectionCountEl = document.getElementById('connection-count');
+        const activeMemoriesEl = document.getElementById('active-memories');
+        
+        if (memoryCountEl) memoryCountEl.textContent = newData.nodes.length;
+        if (connectionCountEl) connectionCountEl.textContent = newData.edges.length;
+        if (activeMemoriesEl) activeMemoriesEl.textContent = activeMemories.size;
         
         // Populate session store with initial data
         if (isInitialLoad) {
@@ -1003,8 +1027,8 @@ MEMORY_NETWORK_JAVASCRIPT = '''
     // Simple similarity calculation for real-time use
     function calculateSimpleSimilarity(text1, text2) {
         // Convert to lowercase and split into words
-        const words1 = text1.toLowerCase().split(/\s+/);
-        const words2 = text2.toLowerCase().split(/\s+/);
+        const words1 = text1.toLowerCase().split(/\\s+/);
+        const words2 = text2.toLowerCase().split(/\\s+/);
         
         // Create word frequency maps
         const freq1 = {};
@@ -1690,11 +1714,17 @@ MEMORY_NETWORK_JAVASCRIPT = '''
     }
 
     // Threshold slider handler
-    document.getElementById('threshold-slider').addEventListener('input', function(e) {
-        currentThreshold = parseFloat(e.target.value);
-        document.getElementById('threshold-value').textContent = currentThreshold.toFixed(2);
-        loadMemoryNetwork();
-    });
+    const thresholdSlider = document.getElementById('threshold-slider');
+    if (thresholdSlider) {
+        thresholdSlider.addEventListener('input', function(e) {
+            currentThreshold = parseFloat(e.target.value);
+            const thresholdValue = document.getElementById('threshold-value');
+            if (thresholdValue) {
+                thresholdValue.textContent = currentThreshold.toFixed(2);
+            }
+            loadMemoryNetwork();
+        });
+    }
 
     // Manual refresh button handler
     function refreshMemoryNetworkManual() {
@@ -1730,12 +1760,16 @@ MEMORY_NETWORK_JAVASCRIPT = '''
     }
     
     // Initialize on DOM load and also when authentication state changes
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeMemorySystem);
-    } else {
-        // DOM already loaded
-        initializeMemorySystem();
+    function waitForDOMAndInitialize() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeMemorySystem);
+        } else {
+            // DOM already loaded, but wait a bit more to ensure all elements are rendered
+            setTimeout(initializeMemorySystem, 100);
+        }
     }
+    
+    waitForDOMAndInitialize();
     
     // Also initialize when the page becomes visible (handles tab switches, navigation)
     document.addEventListener('visibilitychange', function() {

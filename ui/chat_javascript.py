@@ -12,7 +12,8 @@ function handleAuthError(response) {
     if (response.status === 401) {
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
-        window.location.href = '/';
+        // Don't redirect for now - just log the error
+        console.log('⚠️ Authentication error - continuing without auth');
         return true;
     }
     return false;
@@ -33,10 +34,12 @@ function scrollChatToBottom() {
 
 // Auto-resize textarea
 const textarea = document.getElementById('chat-input');
-textarea.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 150) + 'px';
-});
+if (textarea) {
+    textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+}
 
 // Handle Enter key (Send on Enter, new line on Shift+Enter)
 function handleKeyDown(event) {
@@ -82,9 +85,8 @@ async function sendMessage() {
         
         if (!token) {
             console.error('❌ No token found in localStorage!');
-            addMessage('❌ Authentication required. Please refresh the page and log in again.', 'assistant');
-            window.location.href = '/';
-            return;
+            addMessage('⚠️ Running without authentication - some features may be limited.', 'assistant');
+            // Continue without token for now
         }
         
         const response = await fetch('/send_message', {
@@ -110,11 +112,11 @@ async function sendMessage() {
         
         if (response.status === 401) {
             console.error('❌ 401 Unauthorized - Token may be expired or invalid');
-            console.log('🔧 DEBUG: Clearing invalid token and redirecting to login...');
+            console.log('🔧 DEBUG: Clearing invalid token and continuing without auth...');
             localStorage.removeItem('authToken');
             localStorage.removeItem('user');
-            addMessage('❌ Your session has expired. Please log in again.', 'assistant');
-            setTimeout(() => window.location.href = '/', 2000);
+            addMessage('⚠️ Authentication error - continuing without user-specific features.', 'assistant');
+            // Continue without redirect
             return;
         }
         
@@ -445,8 +447,18 @@ function toggleMemoryInjection(memoryId) {
 
 // Navigate to dashboard
 function goToDashboard() {
-    window.location.href = '/dashboard';
+    console.log('🏠 Navigating to dashboard...');
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        console.log('✅ User is authenticated, redirecting to dashboard');
+        window.location.href = '/dashboard';
+    } else {
+        console.log('⚠️ No authentication token found, redirecting to login');
+        window.location.href = '/';
+    }
 }
+
+
 
 function toggleSidebar(forceHide) {
     const sidebar = document.getElementById('thread-sidebar');
@@ -579,11 +591,12 @@ window.addEventListener('DOMContentLoaded', function() {
     // Check if user is authenticated
     const token = localStorage.getItem('authToken');
     if (!token) {
-        window.location.href = '/';
-        return;
+        console.log('⚠️ No authentication token found - running without user-specific features');
+        // Don't redirect, just continue without auth
+    } else {
+        loadThreadListAndLast();
     }
     
-    loadThreadListAndLast();
     focusChatInput();
     
     // Initialize memory network on page load
