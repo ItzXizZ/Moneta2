@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moneta - AI Memory, Done Right.</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    
+    <!-- Clerk JavaScript SDK -->
+    <script
+        async
+        crossorigin="anonymous"
+        data-clerk-publishable-key="pk_test_Z29sZGVuLW9wb3NzdW0tMzIuY2xlcmsuYWNjb3VudHMuZGV2JA"
+        src="https://unpkg.com/@clerk/clerk-js@5/dist/clerk.browser.js"
+        type="text/javascript"
+    ></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: 
+                radial-gradient(ellipse at center, rgba(10, 10, 10, 0.98) 0%, rgba(17, 24, 39, 0.95) 60%, rgba(5, 5, 5, 0.99) 100%),
+                radial-gradient(circle at 20% 20%, rgba(255, 215, 0, 0.02) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.03) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: #f3f4f6;
+            overflow: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 10% 90%, rgba(168, 85, 247, 0.015) 0%, transparent 40%),
+                radial-gradient(circle at 90% 10%, rgba(255, 215, 0, 0.01) 0%, transparent 30%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .hero {
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .logo {
+            font-size: 1rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            opacity: 0;
+            animation: fadeInDown 4s ease-out forwards;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 300;
+            line-height: 1.2;
+            margin-bottom: 35px;
+            margin-top: -20px;
+            color: rgba(255, 255, 255, 0.95);
+            opacity: 0;
+            animation: fadeInUp 4s ease-out 1s forwards;
+            white-space: nowrap;
+        }
+
+        .cta-button {
+            background: transparent;
+            backdrop-filter: none;
+            border: none;
+            border-radius: 0;
+            padding: 8px 0;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+            font-size: 0.875rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+            opacity: 0;
+            animation: fadeInUp 4s ease-out 2s forwards;
+            position: relative;
+            margin-top: -5px;
+        }
+
+        .cta-button:hover {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Animated background orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, transparent 70%);
+            top: -200px;
+            left: -200px;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.3) 0%, transparent 70%);
+            bottom: -150px;
+            right: -150px;
+            animation: float 15s ease-in-out infinite reverse;
+        }
+
+        .orb-3 {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse 10s ease-in-out infinite;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: rgba(168, 85, 247, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: particleFloat 15s linear infinite;
+        }
+
+        @keyframes fadeInDown {
+            0% {
+                opacity: 0;
+                transform: translateY(-40px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(100px, -100px) scale(1.1);
+            }
+            66% {
+                transform: translate(-50px, 50px) scale(0.9);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 0.2;
+            }
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .loading {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.875rem;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                margin-bottom: 20px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 30px;
+                margin-top: -15px;
+                white-space: normal;
+            }
+
+            .cta-button {
+                padding: 6px 0;
+                font-size: 0.8rem;
+                margin-top: -5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated background orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Container -->
+    <div class="container">
+        <div class="hero">
+            <div class="logo">Moneta</div>
+            <h1>AI Memory, Done Right.</h1>
+            <button class="cta-button" id="authButton">
+                <span class="loading" id="loadingText">Loading...</span>
+                <span id="buttonText" style="display: none;">Sign In</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const particleCount = 20;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + 'vw';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                document.body.appendChild(particle);
+            }
+        }
+
+        let clerk;
+        
+        async function initClerk() {
+            try {
+                // Check for logout flag
+                const urlParams = new URLSearchParams(window.location.search);
+                const loggedOut = urlParams.get('logged_out');
+                
+                if (loggedOut === 'true') {
+                    console.log('[Landing] Logout mode - clearing storage...');
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    
+                    const loadingText = document.getElementById('loadingText');
+                    const buttonText = document.getElementById('buttonText');
+                    loadingText.style.display = 'none';
+                    buttonText.style.display = 'inline';
+                    buttonText.textContent = 'Sign In';
+                    
+                    window.history.replaceState({}, document.title, '/');
+                    
+                    setTimeout(async () => {
+                        let attempts = 0;
+                        while (!window.Clerk && attempts < 100) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            attempts++;
+                        }
+                        
+                        if (window.Clerk) {
+                            clerk = window.Clerk;
+                            await clerk.load();
+                            if (clerk.user) {
+                                await clerk.signOut();
+                            }
+                        }
+                    }, 0);
+                    
+                    return;
+                }
+                
+                // Wait for Clerk SDK
+                let attempts = 0;
+                while (!window.Clerk && attempts < 100) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (!window.Clerk) {
+                    throw new Error('Clerk failed to load');
+                }
+                
+                clerk = window.Clerk;
+                await clerk.load();
+                
+                const user = clerk.user;
+                const loadingText = document.getElementById('loadingText');
+                const buttonText = document.getElementById('buttonText');
+                
+                loadingText.style.display = 'none';
+                buttonText.style.display = 'inline';
+                
+                if (user) {
+                    console.log('[Landing] User authenticated, syncing...');
+                    const session = clerk.session;
+                    if (session) {
+                        const syncSuccess = await syncSessionWithBackend(session.id);
+                        if (syncSuccess) {
+                            window.location.href = '/dashboard';
+                            return;
+                        } else {
+                            await clerk.signOut();
+                            buttonText.textContent = 'Sign In';
+                        }
+                    }
+                } else {
+                    buttonText.textContent = 'Sign In';
+                }
+            } catch (error) {
+                console.error('Clerk initialization error:', error);
+                const loadingText = document.getElementById('loadingText');
+                const buttonText = document.getElementById('buttonText');
+                loadingText.style.display = 'none';
+                buttonText.style.display = 'inline';
+                buttonText.textContent = 'Error Loading';
+            }
+        }
+        
+        async function syncSessionWithBackend(sessionId) {
+            try {
+                const session = clerk.session;
+                if (!session) return false;
+                
+                const token = await session.getToken();
+                if (!token) return false;
+                
+                const response = await fetch('/api/clerk/session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        session_token: token,
+                        session_id: sessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('moneta_user', JSON.stringify(data.user));
+                    localStorage.setItem('moneta_session_token', token);
+                    localStorage.setItem('moneta_session_id', sessionId);
+                    localStorage.setItem('authToken', token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Session sync error:', error);
+                return false;
+            }
+        }
+        
+        async function handleAuth() {
+            try {
+                if (!clerk) {
+                    alert('Please wait a moment and try again.');
+                    return;
+                }
+                
+                await clerk.openSignIn({
+                    appearance: {
+                        baseTheme: 'dark',
+                        variables: { colorPrimary: '#a855f7' }
+                    }
+                });
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (clerk.user && clerk.session) {
+                    const syncSuccess = await syncSessionWithBackend(clerk.session.id);
+                    if (syncSuccess) {
+                        window.location.href = '/dashboard';
+                    } else {
+                        alert('Sync failed. Please try again.');
+                        await clerk.signOut();
+                    }
+                }
+            } catch (error) {
+                console.error('Sign-in error:', error);
+                if (!error.message.includes('cannot_render_single_session_enabled')) {
+                    alert('Sign-in failed. Please try again.');
+                }
+            }
+        }
+        
+        document.getElementById('authButton')?.addEventListener('click', handleAuth);
+        
+        window.addEventListener('load', () => {
+            initClerk();
+            createParticles();
+        });
+    </script>
+</body>
+</html>

@@ -1,8 +1,0 @@
-Flask
-Flask-Cors
-scikit-learn
-sentence-transformers
-numpy
-python-dotenv
-openai
-watchdog

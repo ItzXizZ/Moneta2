@@ -4,36 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Moneta</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    
+    <!-- Clerk JavaScript SDK -->
+    <script
+        async
+        crossorigin="anonymous"
+        data-clerk-publishable-key="pk_test_Z29sZGVuLW9wb3NzdW0tMzIuY2xlcmsuYWNjb3VudHMuZGV2JA"
+        src="https://unpkg.com/@clerk/clerk-js@5/dist/clerk.browser.js"
+        type="text/javascript"
+    ></script>
+    
     <style>
-        :root {
-            --primary-900: #1a0b2e;
-            --primary-800: #2d1b47;
-            --primary-700: #3e2760;
-            --primary-600: #4f3279;
-            --primary-500: #8b5cf6;
-            --primary-400: #a855f7;
-            --primary-300: #c084fc;
-            --primary-200: #ddd6fe;
-            --primary-100: #f3e8ff;
-            
-            --dark-900: #0a0a0a;
-            --dark-800: #111827;
-            --dark-700: #1f2937;
-            --dark-600: #374151;
-            --dark-500: #4b5563;
-            --dark-400: #6b7280;
-            --dark-300: #9ca3af;
-            --dark-200: #d1d5db;
-            --dark-100: #f3f4f6;
-            
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --glass-blur: blur(20px);
-            
-            --gold-accent: #ffd700;
-            --gold-glow: rgba(255, 215, 0, 0.6);
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -42,10 +24,15 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-            background: radial-gradient(ellipse at center, var(--dark-900) 0%, var(--dark-800) 60%, var(--dark-900) 100%);
+            background: 
+                radial-gradient(ellipse at center, rgba(10, 10, 10, 0.98) 0%, rgba(17, 24, 39, 0.95) 60%, rgba(5, 5, 5, 0.99) 100%),
+                radial-gradient(circle at 20% 20%, rgba(255, 215, 0, 0.02) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.03) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: #f3f4f6;
             min-height: 100vh;
-            color: white;
             position: relative;
+            overflow-x: hidden;
         }
 
         body::before {
@@ -56,144 +43,166 @@
             right: 0;
             bottom: 0;
             background: 
-                radial-gradient(circle at 20% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 40% 70%, rgba(168, 85, 247, 0.03) 0%, transparent 30%);
+                radial-gradient(circle at 10% 90%, rgba(168, 85, 247, 0.015) 0%, transparent 40%),
+                radial-gradient(circle at 90% 10%, rgba(255, 215, 0, 0.01) 0%, transparent 30%);
             pointer-events: none;
             z-index: 0;
         }
 
-        .dashboard-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 60px 20px;
+        .logout-btn {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+            font-size: 0.75rem;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 1);
+        }
+
+        .container {
             position: relative;
             z-index: 1;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 60px;
-            color: white;
-        }
-
-        .header h1 {
-            font-size: clamp(2.5rem, 5vw, 3.5rem);
-            font-weight: 700;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, white 0%, var(--primary-200) 50%, var(--gold-accent) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 0 40px rgba(168, 85, 247, 0.3);
-        }
-
-        .header p {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.8);
-            margin-bottom: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .user-info {
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 30px;
-            margin-bottom: 40px;
-            position: relative;
-            overflow: hidden;
+            text-align: center;
+            margin-bottom: 80px;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
         }
 
-        .user-info::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
-            opacity: 0.5;
-        }
-
-        .user-info h2 {
-            color: white;
-            margin-bottom: 10px;
+        .user-name {
             font-size: 1.5rem;
-            font-weight: 600;
-            position: relative;
-            z-index: 1;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 8px;
         }
 
-        .user-info p {
-            color: rgba(255, 255, 255, 0.7);
-            position: relative;
-            z-index: 1;
+        .user-email {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.05em;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 30px;
-            margin-bottom: 50px;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 100px;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease 0.2s forwards;
         }
 
         .stat-card {
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 40px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 40px 30px;
             text-align: center;
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .stat-card:hover::before {
-            opacity: 1;
         }
 
         .stat-card:hover {
-            transform: translateY(-8px);
-            border-color: var(--primary-400);
-            box-shadow: 0 20px 60px rgba(168, 85, 247, 0.2);
-        }
-
-        .stat-icon {
-            font-size: 3rem;
-            margin-bottom: 20px;
-            filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.3));
-            position: relative;
-            z-index: 1;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(168, 85, 247, 0.2);
+            transform: translateY(-5px);
         }
 
         .stat-number {
             font-size: 3rem;
-            font-weight: 700;
-            color: var(--primary-300);
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
-            position: relative;
-            z-index: 1;
-            animation: countUp 2s ease-out;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 12px;
+            line-height: 1;
         }
 
-        @keyframes countUp {
+        .stat-label {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .enter-button {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px 80px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 300;
+            font-size: 1.5rem;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease 0.4s forwards;
+        }
+
+        .enter-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .enter-button:hover {
+            background: rgba(168, 85, 247, 0.08);
+            border-color: rgba(168, 85, 247, 0.3);
+            color: rgba(255, 255, 255, 1);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 60px rgba(168, 85, 247, 0.2);
+        }
+
+        .enter-button:hover::before {
+            left: 100%;
+        }
+
+        .enter-button:active {
+            transform: translateY(-3px);
+        }
+
+        .loading {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1rem;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes fadeInUp {
             from {
                 opacity: 0;
                 transform: translateY(20px);
@@ -204,365 +213,279 @@
             }
         }
 
-        .stat-label {
-            font-size: 1.1rem;
-            color: rgba(255, 255, 255, 0.7);
-            font-weight: 500;
-            position: relative;
-            z-index: 1;
-        }
-
-        .actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-
-        .action-card {
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 40px;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .action-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .action-card:hover::before {
-            opacity: 1;
-        }
-
-        .action-card:hover {
-            transform: translateY(-12px);
-            border-color: var(--primary-400);
-            box-shadow: 0 25px 80px rgba(168, 85, 247, 0.25);
-        }
-
-        .action-icon {
-            font-size: 4rem;
-            margin-bottom: 25px;
-            filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.3));
-            position: relative;
-            z-index: 1;
-        }
-
-        .action-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: white;
-            position: relative;
-            z-index: 1;
-        }
-
-        .action-description {
-            font-size: 1.1rem;
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.6;
-            margin-bottom: 25px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .action-button {
-            background: linear-gradient(135deg, var(--primary-600), var(--primary-400));
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 30px rgba(168, 85, 247, 0.3);
-            position: relative;
-            z-index: 1;
-        }
-
-        .action-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(168, 85, 247, 0.4);
-            background: linear-gradient(135deg, var(--primary-500), var(--primary-300));
-        }
-
-        .recent-memories {
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 40px;
-            margin-bottom: 30px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .recent-memories::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
-            opacity: 0.3;
-        }
-
-        .recent-memories h3 {
-            font-size: 1.5rem;
-            margin-bottom: 25px;
-            color: white;
-            font-weight: 600;
-            position: relative;
-            z-index: 1;
-        }
-
-        .memory-item {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 4px solid var(--primary-400);
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 1;
-        }
-
-        .memory-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-left-color: var(--gold-accent);
-            transform: translateX(5px);
-        }
-
-        .memory-content {
-            font-size: 1rem;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 8px;
-            line-height: 1.5;
-        }
-
-        .memory-meta {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .logout-btn {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            color: rgba(255, 255, 255, 0.8);
-            border: 1px solid var(--glass-border);
-            padding: 12px 24px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--primary-400);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(168, 85, 247, 0.2);
-        }
-
-        .loading {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 1.2rem;
-            margin: 50px 0;
-            animation: pulse 1.5s infinite;
-        }
-
         @keyframes pulse {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 1; }
+            0%, 100% { 
+                opacity: 0.5; 
+            }
+            50% { 
+                opacity: 1; 
+            }
         }
 
-        /* Responsive Design */
+        /* Animated background orb */
+        .orb {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+            filter: blur(100px);
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: orbPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes orbPulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 0.2;
+            }
+        }
+
         @media (max-width: 768px) {
-            .dashboard-container {
-                padding: 40px 20px;
-            }
-            
-            .header h1 {
-                font-size: 2.5rem;
-            }
-            
             .stats-grid {
                 grid-template-columns: 1fr;
                 gap: 20px;
             }
-            
-            .actions-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
+
+            .enter-button {
+                padding: 25px 60px;
+                font-size: 1.2rem;
             }
-            
+
+            .stat-number {
+                font-size: 2.5rem;
+            }
+
             .logout-btn {
                 top: 20px;
                 right: 20px;
-                padding: 10px 20px;
-            }
-        }
-
-        /* Animated background particles */
-        .particle {
-            position: fixed;
-            width: 2px;
-            height: 2px;
-            background: rgba(168, 85, 247, 0.6);
-            border-radius: 50%;
-            animation: float 10s infinite linear;
-            pointer-events: none;
-        }
-
-        @keyframes float {
-            0% {
-                transform: translateY(100vh) rotate(0deg);
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-100vh) rotate(360deg);
-                opacity: 0;
+                padding: 8px 16px;
             }
         }
     </style>
 </head>
 <body>
-    <button class="logout-btn" onclick="logout()">Sign Out</button>
+    <div class="orb"></div>
+    <button class="logout-btn" id="logoutBtn">Sign Out</button>
     
-    <div class="dashboard-container">
-        <div class="header">
-            <h1>Welcome to Your Memory Universe</h1>
-            <p>Your personal AI memory system is ready to learn and grow with you</p>
-        </div>
-
+    <div class="container">
         <div class="user-info">
-            <h2 id="userName">Loading...</h2>
-            <p id="userEmail">Loading...</p>
+            <div class="user-name" id="userName">Loading...</div>
+            <div class="user-email" id="userEmail"></div>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon">🧠</div>
                 <div class="stat-number" id="memoryCount">0</div>
-                <div class="stat-label">Total Memories</div>
+                <div class="stat-label">Memories</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">📈</div>
-                <div class="stat-number" id="avgScore">0.0</div>
-                <div class="stat-label">Average Score</div>
+                <div class="stat-number" id="chatCount">0</div>
+                <div class="stat-label">Chats</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🔥</div>
                 <div class="stat-number" id="daysSinceJoined">0</div>
                 <div class="stat-label">Days Active</div>
             </div>
         </div>
 
-        <div class="actions-grid">
-            <a href="/chat" class="action-card">
-                <div class="action-icon">💬</div>
-                <div class="action-title">Enter Memory Universe</div>
-                <div class="action-description">Start chatting and let your AI memory system learn from every conversation</div>
-                <button class="action-button">Start Chatting</button>
-            </a>
-            
-            <div class="action-card" onclick="viewMemories()">
-                <div class="action-icon">🗂️</div>
-                <div class="action-title">Explore Memories</div>
-                <div class="action-description">Browse and search through your collected memories and see how they connect</div>
-                <button class="action-button">View Memories</button>
-            </div>
-            
-            <div class="action-card" onclick="viewNetwork()">
-                <div class="action-icon">🕸️</div>
-                <div class="action-title">Memory Network</div>
-                <div class="action-description">Visualize your memory connections and see how knowledge builds upon itself</div>
-                <button class="action-button">View Network</button>
-            </div>
-            
-            <a href="/subscription" class="action-card">
-                <div class="action-icon">💳</div>
-                <div class="action-title">Subscription</div>
-                <div class="action-description">Manage your plan, view usage, and upgrade to unlock unlimited features</div>
-                <button class="action-button">Manage Plan</button>
-            </a>
-        </div>
-
-        <div class="recent-memories">
-            <h3>Recent Memories</h3>
-            <div id="recentMemoriesList">
-                <div class="loading">Loading recent memories...</div>
-            </div>
-        </div>
+        <a href="/chat" class="enter-button">ENTER</a>
     </div>
 
     <script>
-        // Create animated background particles
-        function createParticles() {
-            const particleCount = 15;
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + 'vw';
-                particle.style.animationDelay = Math.random() * 10 + 's';
-                particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
-                document.body.appendChild(particle);
+        let clerk;
+        let isAuthenticating = false;
+        let currentToken = null;
+        let tokenRefreshInterval = null;
+        
+        async function refreshToken() {
+            try {
+                if (!clerk || !clerk.session) {
+                    return null;
+                }
+                
+                const newToken = await clerk.session.getToken({ skipCache: true });
+                
+                if (newToken) {
+                    currentToken = newToken;
+                    localStorage.setItem('moneta_session_token', newToken);
+                    localStorage.setItem('authToken', newToken);
+                    return newToken;
+                }
+                return null;
+            } catch (error) {
+                console.error('Token refresh error:', error);
+                return null;
+            }
+        }
+        
+        function startTokenRefresh() {
+            if (tokenRefreshInterval) {
+                clearInterval(tokenRefreshInterval);
+            }
+            
+            tokenRefreshInterval = setInterval(async () => {
+                await refreshToken();
+            }, 300000); // 5 minutes
+        }
+        
+        function stopTokenRefresh() {
+            if (tokenRefreshInterval) {
+                clearInterval(tokenRefreshInterval);
+                tokenRefreshInterval = null;
+            }
+        }
+        
+        async function fetchWithAuth(url, options = {}) {
+            const token = currentToken || localStorage.getItem('moneta_session_token');
+            
+            if (!token) {
+                throw new Error('No authentication token');
+            }
+            
+            options.headers = options.headers || {};
+            options.headers['Authorization'] = `Bearer ${token}`;
+            
+            try {
+                let response = await fetch(url, options);
+                
+                if (response.status === 401) {
+                    const newToken = await refreshToken();
+                    
+                    if (newToken) {
+                        options.headers['Authorization'] = `Bearer ${newToken}`;
+                        response = await fetch(url, options);
+                        
+                        if (response.status === 401) {
+                            window.location.href = '/?session_expired=true';
+                            throw new Error('Session expired');
+                        }
+                    } else {
+                        window.location.href = '/?session_expired=true';
+                        throw new Error('Failed to refresh token');
+                    }
+                }
+                
+                return response;
+            } catch (error) {
+                throw error;
             }
         }
 
-        // Load user data and stats
-        async function loadDashboard() {
+        async function initClerk() {
             try {
-                const token = localStorage.getItem('authToken');
-                if (!token) {
-                    console.log('⚠️ No authentication token found - showing demo mode');
-                    showDemoMode();
-                    return;
+                let attempts = 0;
+                while (!window.Clerk && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
                 }
-
-                // Load user profile
-                const profileResponse = await fetch('/api/user/profile', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+                
+                if (!window.Clerk) {
+                    return null;
+                }
+                
+                const configResponse = await fetch('/api/clerk/config');
+                const config = await configResponse.json();
+                
+                if (!config.publishable_key) {
+                    return null;
+                }
+                
+                clerk = window.Clerk;
+                await clerk.load({
+                    appearance: {
+                        baseTheme: 'dark',
+                        variables: {
+                            colorPrimary: '#a855f7'
+                        }
                     }
                 });
+                
+                return clerk;
+            } catch (error) {
+                console.error('Clerk initialization error:', error);
+                return null;
+            }
+        }
+
+        async function loadDashboard() {
+            if (isAuthenticating) {
+                return;
+            }
+            
+            isAuthenticating = true;
+            
+            try {
+                clerk = await initClerk();
+                
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                let token = null;
+                
+                if (clerk && clerk.session && clerk.user) {
+                    try {
+                        token = await clerk.session.getToken({ skipCache: true });
+                        currentToken = token;
+                        
+                        if (token) {
+                            localStorage.setItem('moneta_session_token', token);
+                            localStorage.setItem('authToken', token);
+                            startTokenRefresh();
+                            
+                            const storedUser = localStorage.getItem('moneta_user');
+                            if (!storedUser) {
+                                await syncSessionWithBackend(clerk.session.id);
+                            }
+                        }
+                    } catch (error) {
+                        token = null;
+                    }
+                }
+                
+                if (!token) {
+                    const storedToken = localStorage.getItem('moneta_session_token') || localStorage.getItem('authToken');
+                    
+                    if (storedToken) {
+                        try {
+                            const verifyResponse = await fetch('/api/clerk/user', {
+                                headers: {
+                                    'Authorization': `Bearer ${storedToken}`
+                                }
+                            });
+                            
+                            if (verifyResponse.ok) {
+                                token = storedToken;
+                                currentToken = token;
+                                
+                                if (clerk && clerk.session) {
+                                    startTokenRefresh();
+                                }
+                            } else {
+                                token = null;
+                            }
+                        } catch (error) {
+                            token = null;
+                        }
+                    }
+                }
+                
+                if (!token) {
+                    localStorage.clear();
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    window.location.href = '/?session_expired=true';
+                    return;
+                }
+                
+                const profileResponse = await fetchWithAuth('/api/clerk/user');
 
                 if (profileResponse.ok) {
                     const profileData = await profileResponse.json();
@@ -573,53 +496,74 @@
                         document.getElementById('userName').textContent = user.name;
                         document.getElementById('userEmail').textContent = user.email;
                         
-                        // Animate numbers counting up
                         animateCounter('memoryCount', 0, stats.total_memories, 1000);
-                        animateCounter('avgScore', 0, stats.average_score, 1200, 1);
+                        animateCounter('chatCount', 0, stats.total_conversations || 0, 1200);
                         
-                        // Calculate days since joined
                         const joinDate = new Date(user.created_at || Date.now());
                         const daysSince = Math.floor((Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24));
                         animateCounter('daysSinceJoined', 0, daysSince, 1400);
                     } else {
-                        console.log('⚠️ Profile data not available - showing demo mode');
                         showDemoMode();
                     }
                 } else if (profileResponse.status === 401) {
-                    console.log('⚠️ Authentication failed - showing demo mode');
-                    localStorage.removeItem('authToken');
-                    localStorage.removeItem('user');
-                    showDemoMode();
+                    localStorage.removeItem('moneta_user');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    window.location.href = '/';
+                    return;
                 } else {
-                    console.log('⚠️ Profile request failed - showing demo mode');
                     showDemoMode();
-                }
-
-                // Load recent memories
-                const memoriesResponse = await fetch('/api/memories?limit=5', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (memoriesResponse.ok) {
-                    const memoriesData = await memoriesResponse.json();
-                    if (memoriesData.success) {
-                        displayRecentMemories(memoriesData.memories);
-                    } else {
-                        displayRecentMemories([]);
-                    }
-                } else {
-                    displayRecentMemories([]);
                 }
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
                 showDemoMode();
+            } finally {
+                isAuthenticating = false;
+            }
+        }
+        
+        async function syncSessionWithBackend(sessionId) {
+            try {
+                const session = clerk.session;
+                if (!session) {
+                    return false;
+                }
+                
+                const token = await session.getToken();
+                
+                if (!token) {
+                    return false;
+                }
+                
+                const response = await fetch('/api/clerk/session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        session_token: token,
+                        session_id: sessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('moneta_user', JSON.stringify(data.user));
+                    localStorage.setItem('moneta_session_token', token);
+                    localStorage.setItem('moneta_session_id', sessionId);
+                    localStorage.setItem('authToken', token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Session sync error:', error);
+                return false;
             }
         }
 
-        // Animate counter numbers
         function animateCounter(elementId, start, end, duration, decimals = 0) {
             const element = document.getElementById(elementId);
             const increment = (end - start) / (duration / 16);
@@ -635,79 +579,48 @@
             }, 16);
         }
 
-        function displayRecentMemories(memories) {
-            const container = document.getElementById('recentMemoriesList');
-            
-            if (memories.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: rgba(255, 255, 255, 0.6); font-style: italic;">No memories yet. Start chatting to create your first memories!</p>';
-                return;
+        async function logout() {
+            try {
+                stopTokenRefresh();
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                if (!clerk && window.Clerk) {
+                    clerk = window.Clerk;
+                    await clerk.load();
+                }
+                
+                if (clerk && clerk.user) {
+                    await clerk.signOut();
+                }
+                
+                window.location.href = '/?logged_out=true';
+            } catch (error) {
+                console.error('Logout error:', error);
+                stopTokenRefresh();
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = '/?logged_out=true';
             }
-
-            container.innerHTML = memories.map(memory => `
-                <div class="memory-item">
-                    <div class="memory-content">${memory.content.substring(0, 120)}${memory.content.length > 120 ? '...' : ''}</div>
-                    <div class="memory-meta">Score: ${memory.score.toFixed(2)} | Created: ${new Date(memory.created_at).toLocaleDateString()}</div>
-                </div>
-            `).join('');
         }
 
-        function viewMemories() {
-            // TODO: Implement memories explorer
-            alert('📚 Memories explorer coming soon! This will show all your memories in a searchable interface.');
-        }
-
-        function viewNetwork() {
-            // TODO: Implement network visualization
-            alert('🕸️ Memory network visualization coming soon! This will show how your memories connect to each other.');
-        }
-
-        function logout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            window.location.href = '/';
-        }
-
-        // Show demo mode when authentication is not available
         function showDemoMode() {
             document.getElementById('userName').textContent = 'Demo User';
-            document.getElementById('userEmail').textContent = 'demo@example.com';
+            document.getElementById('userEmail').textContent = 'demo@moneta.ai';
             
-            // Show demo stats
-            animateCounter('memoryCount', 0, 11, 1000);
-            animateCounter('avgScore', 0, 8.5, 1200, 1);
-            animateCounter('daysSinceJoined', 0, 1, 1400);
-            
-            // Show demo memories
-            const demoMemories = [
-                {
-                    content: "Python is a high-level programming language known for its simplicity and readability.",
-                    score: 9.2,
-                    created_at: new Date().toISOString()
-                },
-                {
-                    content: "Machine learning is a subset of artificial intelligence that enables computers to learn without being explicitly programmed.",
-                    score: 8.8,
-                    created_at: new Date().toISOString()
-                },
-                {
-                    content: "Flask is a lightweight web framework for Python that makes it easy to build web applications.",
-                    score: 8.5,
-                    created_at: new Date().toISOString()
-                }
-            ];
-            displayRecentMemories(demoMemories);
-            
-            // Update logout button
-            const logoutBtn = document.querySelector('.logout-btn');
-            logoutBtn.textContent = 'Go to Login';
-            logoutBtn.onclick = () => window.location.href = '/';
+            animateCounter('memoryCount', 0, 0, 1000);
+            animateCounter('chatCount', 0, 0, 1200);
+            animateCounter('daysSinceJoined', 0, 0, 1400);
         }
-
-        // Initialize dashboard
+        
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', logout);
+        }
+        
         window.addEventListener('load', function() {
             loadDashboard();
-            createParticles();
         });
     </script>
 </body>
-</html> 
+</html>

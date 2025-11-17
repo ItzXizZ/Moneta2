@@ -31,4 +31,8 @@ scipy
 
 # Authentication and security
 PyJWT
-bcrypt 
+cryptography
+bcrypt
+
+# Clerk Authentication (using latest stable version)
+clerk-backend-sdk>=1.1.0 
