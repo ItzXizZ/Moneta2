@@ -37,15 +37,24 @@ if __name__ == '__main__':
     # Get port from environment variable (for cloud deployment) or use default
     port = int(os.environ.get('PORT', 4000))
     
-    # Get debug mode from environment (force True for development)
-    debug = True  # Force debug mode for development
+    # Get debug mode from environment (defaults to False for production safety)
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    
+    # Check if we're in production
+    is_production = os.environ.get('ENVIRONMENT', 'development').lower() == 'production'
     
     print("=" * 60)
     print("   MONETA - AI Memory Management System")
     print("=" * 60)
     print(f"   Server: http://localhost:{port}")
     print(f"   Debug Mode: {debug}")
+    print(f"   Environment: {'PRODUCTION' if is_production else 'DEVELOPMENT'}")
     print("=" * 60)
+    
+    if is_production:
+        print("\n⚠️  WARNING: Running Flask dev server in production!")
+        print("   For production, use: gunicorn --bind 0.0.0.0:4000 run:app")
+        print("=" * 60 + "\n")
     
     # Run the application
     app.run(

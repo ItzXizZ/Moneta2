@@ -19,9 +19,17 @@ OPENAI_API_KEY=sk-proj-YOUR_OPENAI_KEY_HERE
 # ============================================
 # FLASK CONFIGURATION
 # ============================================
+# IMPORTANT: Set to False in production!
 FLASK_DEBUG=True
+
 FLASK_HOST=0.0.0.0
 FLASK_PORT=4000
+
+# Set to 'production' when deploying
+ENVIRONMENT=development
+
+# CRITICAL: Generate a secure random secret for production
+# Run: python -c "import secrets; print(secrets.token_urlsafe(32))"
 JWT_SECRET=your_random_secret_key_here_generate_a_long_random_string
 
 

@@ -371,12 +371,21 @@
         
         async function syncSessionWithBackend(sessionId) {
             try {
+                console.log('[Landing] Starting session sync...');
                 const session = clerk.session;
-                if (!session) return false;
+                if (!session) {
+                    console.error('[Landing] No Clerk session available');
+                    return false;
+                }
                 
+                console.log('[Landing] Getting session token...');
                 const token = await session.getToken();
-                if (!token) return false;
+                if (!token) {
+                    console.error('[Landing] Failed to get session token');
+                    return false;
+                }
                 
+                console.log('[Landing] Token obtained, syncing with backend...');
                 const response = await fetch('/api/clerk/session', {
                     method: 'POST',
                     headers: {
@@ -388,9 +397,12 @@
                     })
                 });
                 
+                console.log('[Landing] Backend response status:', response.status);
                 const data = await response.json();
+                console.log('[Landing] Backend response data:', data);
                 
                 if (data.success) {
+                    console.log('[Landing] ✓ Session sync successful');
                     localStorage.setItem('moneta_user', JSON.stringify(data.user));
                     localStorage.setItem('moneta_session_token', token);
                     localStorage.setItem('moneta_session_id', sessionId);
@@ -398,9 +410,10 @@
                     localStorage.setItem('user', JSON.stringify(data.user));
                     return true;
                 }
+                console.error('[Landing] ✗ Session sync failed - backend returned success=false');
                 return false;
             } catch (error) {
-                console.error('Session sync error:', error);
+                console.error('[Landing] ✗ Session sync exception:', error);
                 return false;
             }
         }
