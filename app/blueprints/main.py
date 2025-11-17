@@ -76,7 +76,7 @@ def index():
             """, 500
         
         print(f"[DEBUG] ✓ Serving: landing_clerk.html (Clerk authentication)")
-        return render_template('landing_clerk.html')
+        return render_template('landing_clerk.html', clerk_publishable_key=clerk_pub)
     
     elif clerk_key or clerk_pub:
         # Only one key is present
