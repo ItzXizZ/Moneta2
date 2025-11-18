@@ -208,4 +208,16 @@ def test_legacy_page():
     return render_template('landing.html')
 
 
+@main_bp.route('/privacy')
+def privacy_policy():
+    """Privacy Policy page"""
+    return render_template('privacy.html')
+
+
+@main_bp.route('/terms')
+def terms_of_service():
+    """Terms of Service page"""
+    return render_template('terms.html')
+
+
 
