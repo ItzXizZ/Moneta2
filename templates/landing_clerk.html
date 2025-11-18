@@ -427,8 +427,130 @@
                 
                 await clerk.openSignIn({
                     appearance: {
-                        baseTheme: 'dark',
-                        variables: { colorPrimary: '#a855f7' }
+                        elements: {
+                            // Main card styling
+                            card: {
+                                background: 'rgba(17, 24, 39, 0.95)',
+                                backdropFilter: 'blur(20px)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '12px',
+                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                            },
+                            
+                            // Header styling
+                            headerTitle: {
+                                color: 'rgba(255, 255, 255, 0.95)',
+                                fontWeight: '300',
+                                fontSize: '1.75rem',
+                            },
+                            headerSubtitle: {
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                fontWeight: '300',
+                            },
+                            
+                            // Form elements
+                            formFieldLabel: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                fontWeight: '300',
+                            },
+                            formFieldInput: {
+                                background: 'rgba(0, 0, 0, 0.3)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '8px',
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                fontSize: '0.95rem',
+                            },
+                            'formFieldInput:focus': {
+                                border: '1px solid rgba(168, 85, 247, 0.5)',
+                                boxShadow: '0 0 0 3px rgba(168, 85, 247, 0.1)',
+                            },
+                            
+                            // Buttons
+                            formButtonPrimary: {
+                                background: 'rgba(168, 85, 247, 0.2)',
+                                border: '1px solid rgba(168, 85, 247, 0.4)',
+                                borderRadius: '8px',
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                fontWeight: '300',
+                                fontSize: '0.95rem',
+                                textTransform: 'none',
+                                transition: 'all 0.3s ease',
+                            },
+                            'formButtonPrimary:hover': {
+                                background: 'rgba(168, 85, 247, 0.3)',
+                                border: '1px solid rgba(168, 85, 247, 0.6)',
+                            },
+                            
+                            // Social buttons (Google, etc.)
+                            socialButtonsBlockButton: {
+                                background: 'rgba(0, 0, 0, 0.3)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '8px',
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                fontWeight: '300',
+                                transition: 'all 0.3s ease',
+                            },
+                            'socialButtonsBlockButton:hover': {
+                                background: 'rgba(0, 0, 0, 0.4)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                            },
+                            
+                            // Divider
+                            dividerLine: {
+                                background: 'rgba(255, 255, 255, 0.1)',
+                            },
+                            dividerText: {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                fontWeight: '300',
+                            },
+                            
+                            // Footer links
+                            footerActionLink: {
+                                color: 'rgba(168, 85, 247, 0.8)',
+                                fontWeight: '300',
+                            },
+                            'footerActionLink:hover': {
+                                color: 'rgba(168, 85, 247, 1)',
+                            },
+                            
+                            // General text
+                            identityPreviewText: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                            },
+                            formFieldInfoText: {
+                                color: 'rgba(255, 255, 255, 0.6)',
+                            },
+                            
+                            // Alert/Error messages
+                            alertText: {
+                                color: 'rgba(255, 255, 255, 0.9)',
+                            },
+                            
+                            // Modal backdrop
+                            modalBackdrop: {
+                                backdropFilter: 'blur(8px)',
+                                background: 'rgba(0, 0, 0, 0.6)',
+                            },
+                        },
+                        
+                        variables: {
+                            colorPrimary: '#a855f7',
+                            colorDanger: '#ef4444',
+                            colorSuccess: '#10b981',
+                            colorWarning: '#f59e0b',
+                            colorTextOnPrimaryBackground: '#ffffff',
+                            colorTextSecondary: 'rgba(255, 255, 255, 0.7)',
+                            colorBackground: 'rgba(17, 24, 39, 0.95)',
+                            colorInputBackground: 'rgba(0, 0, 0, 0.3)',
+                            colorInputText: 'rgba(255, 255, 255, 0.9)',
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif',
+                            fontWeight: {
+                                normal: '300',
+                                medium: '400',
+                                bold: '500',
+                            },
+                            borderRadius: '8px',
+                        },
                     }
                 });
                 
