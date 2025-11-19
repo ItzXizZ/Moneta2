@@ -140,19 +140,22 @@ function startTokenRefresh() {
     }
     
     // Show authentication status
-    updateAuthStatus('✅ Authenticated (30 min)');
+    updateAuthStatus('✅ Authenticated');
     
-    // Refresh token every 5 minutes to keep it fresh (tokens last 30 minutes)
-    // This gives us a 6x safety margin
+    // Refresh token every 1 minute to prevent any expiration issues
+    // Clerk tokens typically last 5-60 minutes depending on configuration
+    // Refreshing every minute ensures we always have a fresh token
     tokenRefreshInterval = setInterval(async () => {
-        console.log('[Chat Token Refresh] ⏰ Scheduled refresh (every 5 minutes)');
-        updateAuthStatus('🔄 Refreshing token...');
-        await refreshToken();
-        updateAuthStatus('✅ Authenticated (30 min)');
-    }, 300000); // 5 minutes (300,000 ms)
+        console.log('[Chat Token Refresh] ⏰ Scheduled refresh (every 1 minute)');
+        updateAuthStatus('🔄 Refreshing...');
+        const newToken = await refreshToken();
+        if (newToken) {
+            updateAuthStatus('✅ Authenticated');
+        }
+    }, 60000); // 1 minute (changed from 5 minutes for better session persistence)
     
-    console.log('[Chat Token Refresh] ✅ Auto-refresh enabled (every 5 minutes)');
-    console.log('[Chat Token Refresh] 📅 Tokens last 30 minutes, refresh every 5 minutes for safety');
+    console.log('[Chat Token Refresh] ✅ Auto-refresh enabled (every 1 minute)');
+    console.log('[Chat Token Refresh] 📅 Frequent refresh prevents session expiration issues');
 }
 
 // Update authentication status indicator (HIDDEN - per user request)
@@ -259,6 +262,10 @@ function handleKeyDown(event) {
 // Send message function
 async function sendMessage() {
     console.log('🔥 === SENDMESSAGE FUNCTION CALLED ===');
+    
+    // Refresh token on user activity to ensure it's always fresh
+    console.log('[Chat] Refreshing token before sending message (activity-based refresh)...');
+    await refreshToken();
     
     const input = document.getElementById('chat-input');
     const sendButton = document.querySelector('.send-button');
@@ -461,6 +468,9 @@ function addMessageWithMemoriesInjected(content, sender, memoryContext) {
 // Thread management functions
 async function newThread() {
     console.log('🔥 Creating new thread...');
+    
+    // Refresh token on activity
+    await refreshToken();
     
     // Create a new empty thread
     const token = localStorage.getItem('authToken');
@@ -935,6 +945,14 @@ async function initializeChat() {
             }
         });
     }
+    
+    // Add page visibility handler to refresh token when user returns to page
+    document.addEventListener('visibilitychange', async () => {
+        if (!document.hidden && clerk && clerk.session) {
+            console.log('[Chat] Page became visible - refreshing token...');
+            await refreshToken();
+        }
+    });
 }
 
 // Call initialization on page load

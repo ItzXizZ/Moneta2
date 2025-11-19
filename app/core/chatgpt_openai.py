@@ -2431,7 +2431,7 @@ Focus on:
 - Goals or plans they mentioned
 - Important experiences they shared
 
-Return ONLY the extracted memories, one per line, in first person format (starting with "I").
+Return ONLY the extracted memories, one per line, in third person format using the user's name.
 If no meaningful personal information is found, return "NONE".
 
 Conversation:
@@ -2464,8 +2464,6 @@ Extracted memories:"""
                 # Clean up the memory text
                 if line.startswith('- '):
                     line = line[2:]
-                if not line.lower().startswith('i '):
-                    line = f"I {line.lower()}"
                 memories.append(line)
                 print(f"🔧 DEBUG: Parsed memory: {line}")
         

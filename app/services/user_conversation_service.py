@@ -265,7 +265,7 @@ class UserConversationService:
         # Extract memories with error handling
         try:
             print("[DEBUG] Calling extract_memories_from_conversation...")
-            extracted_memories = openai_service.extract_memories_from_conversation(conversation)
+            extracted_memories = openai_service.extract_memories_from_conversation(conversation, user_id)
             print(f"[DEBUG] Memory extraction completed, got {len(extracted_memories)} memories")
         except Exception as e:
             print(f"[ERROR] Error during memory extraction: {e}")

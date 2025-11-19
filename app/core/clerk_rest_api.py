@@ -108,6 +108,7 @@ class ClerkRestAPI:
             
             # Verify and decode JWT without strict audience/issuer validation
             # Clerk uses dynamic issuers, so we'll verify them after decoding
+            # Add leeway for clock skew to prevent premature expiration
             payload = jwt.decode(
                 token,
                 signing_key.key,
@@ -118,7 +119,8 @@ class ClerkRestAPI:
                     "verify_iat": True,
                     "verify_aud": False,  # Don't verify audience (Clerk doesn't require it)
                     "verify_iss": False,  # Don't verify issuer (we'll check it manually)
-                }
+                },
+                leeway=60  # Allow 60 seconds of clock skew for exp/iat verification
             )
             
             # Log the payload for debugging
@@ -426,4 +428,65 @@ def get_clerk_rest_api():
         except Exception as e:
             print(f"[WARN] Clerk REST API not available: {e}")
     return clerk_rest_api
+
+def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Helper function to get user details by ID
+    
+    Args:
+        user_id: User ID to look up
+        
+    Returns:
+        User data dictionary with 'name', 'email', etc. or None
+    """
+    try:
+        api = get_clerk_rest_api()
+        if not api:
+            print("[WARN] Clerk REST API not available")
+            return None
+        
+        # Get user from Clerk
+        clerk_user = api.get_user(user_id)
+        if not clerk_user:
+            print(f"[WARN] User not found in Clerk: {user_id}")
+            return None
+        
+        # Extract name from Clerk user data
+        # Clerk stores name in multiple possible fields
+        name = None
+        if 'first_name' in clerk_user and 'last_name' in clerk_user:
+            first = clerk_user.get('first_name', '').strip()
+            last = clerk_user.get('last_name', '').strip()
+            if first and last:
+                name = f"{first} {last}"
+            elif first:
+                name = first
+            elif last:
+                name = last
+        
+        # Fallback to full_name if available
+        if not name and 'full_name' in clerk_user:
+            name = clerk_user.get('full_name', '').strip()
+        
+        # Fallback to username
+        if not name and 'username' in clerk_user:
+            name = clerk_user.get('username', '').strip()
+        
+        # Fallback to email prefix
+        if not name and 'email_addresses' in clerk_user:
+            emails = clerk_user.get('email_addresses', [])
+            if emails and len(emails) > 0:
+                email = emails[0].get('email_address', '')
+                if email:
+                    name = email.split('@')[0]
+        
+        return {
+            'id': user_id,
+            'name': name or 'User',  # Always return at least 'User'
+            'email': clerk_user.get('email_addresses', [{}])[0].get('email_address') if clerk_user.get('email_addresses') else None
+        }
+    
+    except Exception as e:
+        print(f"[ERROR] get_user_by_id failed: {e}")
+        return None
 

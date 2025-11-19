@@ -333,9 +333,12 @@
                 clearInterval(tokenRefreshInterval);
             }
             
+            // Refresh token every 1 minute to prevent session expiration
+            // This ensures the user never gets logged out during normal activity
             tokenRefreshInterval = setInterval(async () => {
+                console.log('[Dashboard] Auto-refreshing token...');
                 await refreshToken();
-            }, 300000); // 5 minutes
+            }, 60000); // 1 minute (changed from 5 minutes for better session persistence)
         }
         
         function stopTokenRefresh() {
@@ -751,6 +754,14 @@
         if (logoutBtn) {
             logoutBtn.addEventListener('click', logout);
         }
+        
+        // Add page visibility handler to refresh token when user returns to page
+        document.addEventListener('visibilitychange', async () => {
+            if (!document.hidden && clerk && clerk.session) {
+                console.log('[Dashboard] Page became visible - refreshing token...');
+                await refreshToken();
+            }
+        });
         
         window.addEventListener('load', function() {
             loadDashboard();

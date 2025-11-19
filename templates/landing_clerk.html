@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moneta - Memory, Done Right.</title>
+    <title>Moneta - Memory, Done Elegantly.</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     
     <!-- Clerk JavaScript SDK -->
@@ -88,6 +88,22 @@
             white-space: nowrap;
         }
 
+        .cta-buttons-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            opacity: 0;
+            animation: fadeInUp 4s ease-out 2s forwards;
+            margin-top: -5px;
+        }
+
+        .button-separator {
+            width: 1px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
         .cta-button {
             background: transparent;
             backdrop-filter: none;
@@ -102,13 +118,31 @@
             transition: all 0.3s ease;
             display: inline-block;
             text-decoration: none;
-            opacity: 0;
-            animation: fadeInUp 4s ease-out 2s forwards;
             position: relative;
-            margin-top: -5px;
         }
 
         .cta-button:hover {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .anonymous-button {
+            background: transparent;
+            backdrop-filter: none;
+            border: none;
+            border-radius: 0;
+            padding: 8px 0;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+            font-size: 0.875rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+            position: relative;
+        }
+
+        .anonymous-button:hover {
             color: rgba(255, 255, 255, 0.9);
         }
 
@@ -261,10 +295,14 @@
         <div class="hero">
             <div class="logo">Moneta</div>
             <h1>Memory, Done Right.</h1>
-            <button class="cta-button" id="authButton">
-                <span class="loading" id="loadingText">Loading...</span>
-                <span id="buttonText" style="display: none;">Sign In</span>
-            </button>
+            <div class="cta-buttons-container">
+                <button class="cta-button" id="authButton">
+                    <span class="loading" id="loadingText">Loading...</span>
+                    <span id="buttonText" style="display: none;">Sign In</span>
+                </button>
+                <div class="button-separator"></div>
+                <a href="/anonymous" class="anonymous-button">Anonymous</a>
+            </div>
         </div>
     </div>
 

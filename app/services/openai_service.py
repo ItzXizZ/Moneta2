@@ -16,13 +16,13 @@ class OpenAIService:
             "type": "function",
             "function": {
                 "name": "create_memory",
-                "description": "IMPORTANT: Use this tool EVERY TIME the user mentions ANY personal information, preferences, likes/dislikes, facts, experiences, or anything about themselves. Be very liberal with creating memories - it's better to create too many than too few. Always use first person format (starting with 'I'). Examples: 'I love pepperoni pizza', 'I work as a software engineer', 'I have a dog named Max', 'I hate broccoli', 'I went to Paris', 'I want to learn Spanish'.",
+                "description": "IMPORTANT: Use this tool EVERY TIME the user mentions ANY personal information, preferences, likes/dislikes, facts, experiences, or anything about themselves. Be very liberal with creating memories - it's better to create too many than too few. CRITICAL: ALWAYS use third person format with the user's name (never use 'I' or 'my'). Examples: 'John loves pepperoni pizza', 'Sarah works as a software engineer', 'Mike has a dog named Max', 'Emma hates broccoli', 'Alex went to Paris', 'Lisa wants to learn Spanish'.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "content": {
                             "type": "string",
-                            "description": "The memory content in first person format. Must start with 'I'. Be specific and include details. Example: 'I love pepperoni pizza' NOT just 'I like pizza'"
+                            "description": "The memory content in third person format using the user's name. NEVER use first person ('I', 'my', 'me'). ALWAYS use the user's name. Be specific and include details. CORRECT: 'John loves pepperoni pizza' | WRONG: 'I love pepperoni pizza'"
                         },
                         "tags": {
                             "type": "array",
@@ -45,10 +45,6 @@ class OpenAIService:
         content = content.strip()
         if not content:
             return {"success": False, "error": "Memory content cannot be empty"}
-        
-        # Ensure content starts with "I" for first person
-        if not content.lower().startswith('i '):
-            content = f"I {content.lower()}"
         
         tags = tags or ["conversation"]
         
@@ -109,6 +105,18 @@ class OpenAIService:
             print(f"[ERROR] {error_msg}")
             return error_msg, []
         
+        # Get user's name from Clerk
+        user_name = "User"  # Default fallback
+        if user_id and user_id != 'anonymous':
+            try:
+                from app.core.clerk_rest_api import get_user_by_id
+                user_info = get_user_by_id(user_id)
+                if user_info and 'name' in user_info:
+                    user_name = user_info['name'].split()[0] if user_info['name'] else "User"  # Get first name only
+                    print(f"[INFO] Retrieved user name: {user_name}")
+            except Exception as e:
+                print(f"[WARN] Could not get user name: {e}, using default 'User'")
+        
         # Check user's subscription and usage limits
         if user_id and user_id != 'anonymous':
             try:
@@ -119,21 +127,23 @@ class OpenAIService:
                 print(f"[WARN] Subscription check failed: {e}")
         
         try:
-            # Build system message with memory context
-            system_content = """You are a helpful AI assistant with a powerful memory system. You MUST actively create memories whenever users share personal information.
+            # Build system message with memory context - use user's name in third person
+            system_content = f"""You are a helpful AI assistant with a powerful memory system. You MUST actively create memories whenever users share personal information.
 
 ⚠️ IMPORTANT: You should use the create_memory tool FREQUENTLY. Whenever a user mentions ANYTHING about themselves, you should create a memory. Be proactive and liberal with memory creation.
 
-Create memories for:
-- Personal preferences (food, hobbies, interests) - e.g., "I love pepperoni" → create memory
-- Facts about the user (job, location, family, pets) - e.g., "I work as a teacher" → create memory
-- Opinions and feelings they express - e.g., "I think cats are better than dogs" → create memory
-- Goals or plans they mention - e.g., "I want to learn Spanish" → create memory
-- Important experiences they share - e.g., "I went to Paris last year" → create memory
-- Any likes or dislikes - e.g., "I hate broccoli" → create memory
-- Skills or abilities - e.g., "I can play guitar" → create memory
+🔴 CRITICAL FORMATTING RULE: NEVER use first person ("I", "my", "me") in memories. ALWAYS use third person with the user's name "{user_name}".
 
-ALWAYS create memories in first person format (starting with "I").
+Create memories for:
+- Personal preferences (food, hobbies, interests) - e.g., user says "I love pepperoni" → create memory "{user_name} loves pepperoni" (NOT "I love pepperoni")
+- Facts about the user (job, location, family, pets) - e.g., user says "I work as a teacher" → create memory "{user_name} works as a teacher" (NOT "I work as a teacher")
+- Opinions and feelings they express - e.g., user says "I think cats are better than dogs" → create memory "{user_name} thinks cats are better than dogs"
+- Goals or plans they mention - e.g., user says "I want to learn Spanish" → create memory "{user_name} wants to learn Spanish"
+- Important experiences they share - e.g., user says "I went to Paris last year" → create memory "{user_name} went to Paris last year"
+- Any likes or dislikes - e.g., user says "I hate broccoli" → create memory "{user_name} hates broccoli"
+- Skills or abilities - e.g., user says "I can play guitar" → create memory "{user_name} can play guitar"
+
+REMEMBER: Convert first person to third person! User says "I" → you write "{user_name}". User says "my" → you write "{user_name}'s".
 
 When you create a memory, acknowledge it naturally in your response (e.g., "I'll remember that you love pepperoni!").
 
@@ -324,9 +334,38 @@ Use existing memories to personalize your responses when relevant."""
             else:
                 return f"⚠️ An error occurred: {str(e)}. Please try again.", [], []
     
-    def extract_memories_from_conversation(self, conversation):
+    def chat(self, messages):
+        """Simple chat method for anonymous users - no tool calling or memory"""
+        if not self.client:
+            raise Exception("OpenAI API is not configured. Please add your OPENAI_API_KEY to the .env file.")
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            raise Exception(f"OpenAI API Error: {str(e)}")
+    
+    def extract_memories_from_conversation(self, conversation, user_id=None):
         """Extract up to 5 meaningful memories from a conversation using OpenAI"""
         print(f"[DEBUG] extract_memories_from_conversation called with {len(conversation) if conversation else 0} messages")
+        
+        # Get user's name from Clerk
+        user_name = "User"  # Default fallback
+        if user_id and user_id != 'anonymous':
+            try:
+                from app.core.clerk_rest_api import get_user_by_id
+                user_info = get_user_by_id(user_id)
+                if user_info and 'name' in user_info:
+                    user_name = user_info['name'].split()[0] if user_info['name'] else "User"  # Get first name only
+                    print(f"[INFO] Retrieved user name for memory extraction: {user_name}")
+            except Exception as e:
+                print(f"[WARN] Could not get user name for extraction: {e}, using default 'User'")
         
         # Check if OpenAI client is available
         if not self.client:
@@ -356,13 +395,15 @@ Focus on:
 - Goals or plans they mentioned
 - Important experiences they shared
 
-Return ONLY the extracted memories, one per line, in first person format (starting with "I").
+🔴 CRITICAL: Return ONLY the extracted memories, one per line, in third person format using the user's name "{user_name}".
+NEVER use first person pronouns (I, my, me). ALWAYS use the user's name "{user_name}".
+CORRECT: "{user_name} loves pizza" | WRONG: "I love pizza"
 If no meaningful personal information is found, return "NONE".
 
 Conversation:
 {conversation_text}
 
-Extracted memories:"""
+Extracted memories (in third person with name "{user_name}"):"""
 
             print("🔧 DEBUG: Calling OpenAI API for memory extraction...")
             
@@ -389,8 +430,6 @@ Extracted memories:"""
                     # Clean up the memory text
                     if line.startswith('- '):
                         line = line[2:]
-                    if not line.lower().startswith('i '):
-                        line = f"I {line.lower()}"
                     memories.append(line)
                     print(f"[DEBUG] Parsed memory: {line}")
             
