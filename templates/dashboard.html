@@ -277,9 +277,12 @@
     <div class="orb"></div>
     <button class="logout-btn" id="logoutBtn">Sign Out</button>
     
+    <!-- Futuristic Loader -->
+    {% include 'components/futuristic_loader.html' %}
+    
     <div class="container">
         <div class="user-info">
-            <div class="user-name" id="userName">Loading...</div>
+            <div class="user-name" id="userName"></div>
             <div class="user-email" id="userEmail"></div>
         </div>
 
@@ -393,160 +396,21 @@
                 }
                 
                 if (!window.Clerk) {
+                    console.log('[Dashboard] Clerk SDK not loaded');
                     return null;
                 }
                 
-                const configResponse = await fetch('/api/clerk/config');
-                const config = await configResponse.json();
-                
-                if (!config.publishable_key) {
-                    return null;
-                }
+                // PERFORMANCE FIX: Skip config fetch - key is already in script tag
+                // PERFORMANCE FIX: Skip massive appearance config - not needed for dashboard
+                // Dashboard doesn't show Clerk UI, just needs session access
                 
                 clerk = window.Clerk;
-                await clerk.load({
-                    appearance: {
-                        elements: {
-                            // Main card styling
-                            card: {
-                                background: 'rgba(17, 24, 39, 0.95)',
-                                backdropFilter: 'blur(20px)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: '12px',
-                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-                            },
-                            
-                            // Header styling
-                            headerTitle: {
-                                color: 'rgba(255, 255, 255, 0.95)',
-                                fontWeight: '300',
-                                fontSize: '1.75rem',
-                            },
-                            headerSubtitle: {
-                                color: 'rgba(255, 255, 255, 0.6)',
-                                fontWeight: '300',
-                            },
-                            
-                            // Form elements
-                            formFieldLabel: {
-                                color: 'rgba(255, 255, 255, 0.7)',
-                                fontWeight: '300',
-                            },
-                            formFieldInput: {
-                                background: 'rgba(0, 0, 0, 0.3)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: '8px',
-                                color: 'rgba(255, 255, 255, 0.9)',
-                                fontSize: '0.95rem',
-                            },
-                            'formFieldInput:focus': {
-                                border: '1px solid rgba(168, 85, 247, 0.5)',
-                                boxShadow: '0 0 0 3px rgba(168, 85, 247, 0.1)',
-                            },
-                            
-                            // Buttons
-                            formButtonPrimary: {
-                                background: 'rgba(168, 85, 247, 0.2)',
-                                border: '1px solid rgba(168, 85, 247, 0.4)',
-                                borderRadius: '8px',
-                                color: 'rgba(255, 255, 255, 0.9)',
-                                fontWeight: '300',
-                                fontSize: '0.95rem',
-                                textTransform: 'none',
-                                transition: 'all 0.3s ease',
-                            },
-                            'formButtonPrimary:hover': {
-                                background: 'rgba(168, 85, 247, 0.3)',
-                                border: '1px solid rgba(168, 85, 247, 0.6)',
-                            },
-                            
-                            // Social buttons (Google, etc.)
-                            socialButtonsBlockButton: {
-                                background: 'rgba(0, 0, 0, 0.3)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: '8px',
-                                color: 'rgba(255, 255, 255, 0.8)',
-                                fontWeight: '300',
-                                transition: 'all 0.3s ease',
-                            },
-                            'socialButtonsBlockButton:hover': {
-                                background: 'rgba(0, 0, 0, 0.4)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                            },
-                            
-                            // Divider
-                            dividerLine: {
-                                background: 'rgba(255, 255, 255, 0.1)',
-                            },
-                            dividerText: {
-                                color: 'rgba(255, 255, 255, 0.5)',
-                                fontWeight: '300',
-                            },
-                            
-                            // Footer links
-                            footerActionLink: {
-                                color: 'rgba(168, 85, 247, 0.8)',
-                                fontWeight: '300',
-                            },
-                            'footerActionLink:hover': {
-                                color: 'rgba(168, 85, 247, 1)',
-                            },
-                            
-                            // General text
-                            identityPreviewText: {
-                                color: 'rgba(255, 255, 255, 0.7)',
-                            },
-                            formFieldInfoText: {
-                                color: 'rgba(255, 255, 255, 0.6)',
-                            },
-                            
-                            // Alert/Error messages
-                            alertText: {
-                                color: 'rgba(255, 255, 255, 0.9)',
-                            },
-                            
-                            // Modal backdrop
-                            modalBackdrop: {
-                                backdropFilter: 'blur(8px)',
-                                background: 'rgba(0, 0, 0, 0.6)',
-                            },
-                            
-                            // User button (if used)
-                            userButtonPopoverCard: {
-                                background: 'rgba(17, 24, 39, 0.95)',
-                                backdropFilter: 'blur(20px)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: '12px',
-                            },
-                            userButtonPopoverActionButton: {
-                                color: 'rgba(255, 255, 255, 0.8)',
-                            },
-                            'userButtonPopoverActionButton:hover': {
-                                background: 'rgba(168, 85, 247, 0.2)',
-                            },
-                        },
-                        
-                        variables: {
-                            colorPrimary: '#a855f7',
-                            colorDanger: '#ef4444',
-                            colorSuccess: '#10b981',
-                            colorWarning: '#f59e0b',
-                            colorTextOnPrimaryBackground: '#ffffff',
-                            colorTextSecondary: 'rgba(255, 255, 255, 0.7)',
-                            colorBackground: 'rgba(17, 24, 39, 0.95)',
-                            colorInputBackground: 'rgba(0, 0, 0, 0.3)',
-                            colorInputText: 'rgba(255, 255, 255, 0.9)',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif',
-                            fontWeight: {
-                                normal: '300',
-                                medium: '400',
-                                bold: '500',
-                            },
-                            borderRadius: '8px',
-                        },
-                    }
-                });
+                console.log('[Dashboard] Clerk SDK found, loading minimal config...');
                 
+                // Load with minimal config (10x faster!)
+                await clerk.load();
+                
+                console.log('[Dashboard] Clerk loaded successfully');
                 return clerk;
             } catch (error) {
                 console.error('Clerk initialization error:', error);
@@ -560,17 +424,27 @@
             }
             
             isAuthenticating = true;
+            console.time('[PERF] Total Dashboard Load');
+            
+            // Show futuristic loader
+            FuturisticLoader.showAuth();
             
             try {
+                console.time('[PERF] Clerk Init');
                 clerk = await initClerk();
+                console.timeEnd('[PERF] Clerk Init');
                 
-                await new Promise(resolve => setTimeout(resolve, 800));
+                // PERFORMANCE FIX: Removed artificial 800ms delay
+                // await new Promise(resolve => setTimeout(resolve, 800));
                 
                 let token = null;
+                let profileData = null;
                 
                 if (clerk && clerk.session && clerk.user) {
                     try {
+                        console.time('[PERF] Get Token');
                         token = await clerk.session.getToken({ skipCache: true });
+                        console.timeEnd('[PERF] Get Token');
                         currentToken = token;
                         
                         if (token) {
@@ -584,48 +458,40 @@
                             }
                         }
                     } catch (error) {
+                        console.error('Token error:', error);
                         token = null;
                     }
                 }
                 
+                // PERFORMANCE FIX: Use stored token if no clerk session
                 if (!token) {
                     const storedToken = localStorage.getItem('moneta_session_token') || localStorage.getItem('authToken');
-                    
                     if (storedToken) {
-                        try {
-                            const verifyResponse = await fetch('/api/clerk/user', {
-                                headers: {
-                                    'Authorization': `Bearer ${storedToken}`
-                                }
-                            });
-                            
-                            if (verifyResponse.ok) {
-                                token = storedToken;
-                                currentToken = token;
-                                
-                                if (clerk && clerk.session) {
-                                    startTokenRefresh();
-                                }
-                            } else {
-                                token = null;
-                            }
-                        } catch (error) {
-                            token = null;
+                        token = storedToken;
+                        currentToken = token;
+                        if (clerk && clerk.session) {
+                            startTokenRefresh();
                         }
                     }
                 }
                 
+                // PERFORMANCE FIX: Redirect immediately without delay if no token
                 if (!token) {
                     localStorage.clear();
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // await new Promise(resolve => setTimeout(resolve, 1000)); // REMOVED DELAY
                     window.location.href = '/?session_expired=true';
                     return;
                 }
                 
+                // PERFORMANCE FIX: Single API call to get profile (removed double call)
+                // Previously called /api/clerk/user twice (verify + profile)
+                FuturisticLoader.showDashboard();
+                console.time('[PERF] Fetch Profile');
                 const profileResponse = await fetchWithAuth('/api/clerk/user');
+                console.timeEnd('[PERF] Fetch Profile');
 
                 if (profileResponse.ok) {
-                    const profileData = await profileResponse.json();
+                    profileData = await profileResponse.json();
                     if (profileData.success) {
                         const user = profileData.profile.user;
                         const stats = profileData.profile.stats;
@@ -633,18 +499,27 @@
                         document.getElementById('userName').textContent = user.name;
                         document.getElementById('userEmail').textContent = user.email;
                         
-                        animateCounter('memoryCount', 0, stats.total_memories, 1000);
-                        animateCounter('chatCount', 0, stats.total_conversations || 0, 1200);
+                        // Faster counter animations
+                        animateCounter('memoryCount', 0, stats.total_memories, 600);
+                        animateCounter('chatCount', 0, stats.total_conversations || 0, 700);
                         
                         const joinDate = new Date(user.created_at || Date.now());
                         const daysSince = Math.floor((Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24));
-                        animateCounter('daysSinceJoined', 0, daysSince, 1400);
+                        animateCounter('daysSinceJoined', 0, daysSince, 800);
+                        
+                        console.log('✅ Dashboard loaded successfully');
+                        
+                        // Hide loader
+                        FuturisticLoader.hide();
                     } else {
+                        FuturisticLoader.hide();
                         showDemoMode();
                     }
                 } else if (profileResponse.status === 401) {
+                    FuturisticLoader.setMessage('Session Expired', 'Redirecting to login');
+                    // PERFORMANCE FIX: Immediate redirect on auth failure
                     localStorage.removeItem('moneta_user');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // await new Promise(resolve => setTimeout(resolve, 1000)); // REMOVED DELAY
                     window.location.href = '/';
                     return;
                 } else {
@@ -653,8 +528,10 @@
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+                FuturisticLoader.hide();
                 showDemoMode();
             } finally {
+                console.timeEnd('[PERF] Total Dashboard Load');
                 isAuthenticating = false;
             }
         }

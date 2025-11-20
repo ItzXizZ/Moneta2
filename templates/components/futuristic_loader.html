@@ -1,0 +1,227 @@
+<!-- Futuristic Loading Screen Component -->
+<style>
+    .futuristic-loader-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(ellipse at center, rgba(10, 10, 10, 0.98) 0%, rgba(17, 24, 39, 0.95) 60%, rgba(5, 5, 5, 0.99) 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 1;
+        transition: opacity 0.5s ease-out;
+    }
+    
+    .futuristic-loader-overlay.fade-out {
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    /* Hexagonal loading spinner */
+    .hex-loader {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        margin-bottom: 30px;
+    }
+    
+    .hex {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 3px solid transparent;
+        border-top-color: rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        animation: hexSpin 2s linear infinite;
+    }
+    
+    .hex:nth-child(2) {
+        border-top-color: rgba(255, 255, 255, 0.7);
+        animation-delay: -0.5s;
+        width: 80%;
+        height: 80%;
+        top: 10%;
+        left: 10%;
+    }
+    
+    .hex:nth-child(3) {
+        border-top-color: rgba(255, 255, 255, 0.5);
+        animation-delay: -1s;
+        width: 60%;
+        height: 60%;
+        top: 20%;
+        left: 20%;
+    }
+    
+    @keyframes hexSpin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+    
+    /* Loading text */
+    .loader-text {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.2rem;
+        font-weight: 300;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin-bottom: 15px;
+    }
+    
+    .loader-subtext {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9rem;
+        font-weight: 300;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Animated dots */
+    .loading-dots {
+        display: inline-block;
+    }
+    
+    .loading-dots::after {
+        content: '';
+        animation: dots 1.5s steps(4, end) infinite;
+    }
+    
+    @keyframes dots {
+        0%, 20% {
+            content: '';
+        }
+        40% {
+            content: '.';
+        }
+        60% {
+            content: '..';
+        }
+        80%, 100% {
+            content: '...';
+        }
+    }
+    
+    /* Progress bar */
+    .progress-container {
+        width: 200px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 25px;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.9));
+        background-size: 200% 100%;
+        animation: progressShine 2s linear infinite;
+        width: 60%;
+        border-radius: 10px;
+    }
+    
+    @keyframes progressShine {
+        0% {
+            background-position: 200% 0;
+        }
+        100% {
+            background-position: -200% 0;
+        }
+    }
+    
+</style>
+
+<div id="futuristicLoader" class="futuristic-loader-overlay">
+    <!-- Hexagonal spinner -->
+    <div class="hex-loader">
+        <div class="hex"></div>
+        <div class="hex"></div>
+        <div class="hex"></div>
+    </div>
+    
+    <!-- Loading text -->
+    <div class="loader-text">
+        <span id="loaderMessage">Initializing</span><span class="loading-dots"></span>
+    </div>
+    <div class="loader-subtext" id="loaderSubtext">Preparing your experience</div>
+    
+    <!-- Progress bar -->
+    <div class="progress-container">
+        <div class="progress-bar"></div>
+    </div>
+</div>
+
+<script>
+// Futuristic Loader Controller
+const FuturisticLoader = {
+    overlay: null,
+    messageEl: null,
+    subtextEl: null,
+    
+    init() {
+        this.overlay = document.getElementById('futuristicLoader');
+        this.messageEl = document.getElementById('loaderMessage');
+        this.subtextEl = document.getElementById('loaderSubtext');
+    },
+    
+    show(message = 'Loading', subtext = 'Please wait') {
+        if (!this.overlay) this.init();
+        this.overlay.classList.remove('fade-out');
+        this.overlay.style.display = 'flex';
+        this.setMessage(message, subtext);
+    },
+    
+    hide() {
+        if (!this.overlay) return;
+        this.overlay.classList.add('fade-out');
+        setTimeout(() => {
+            this.overlay.style.display = 'none';
+        }, 500);
+    },
+    
+    setMessage(message, subtext = '') {
+        if (!this.messageEl) this.init();
+        if (this.messageEl) this.messageEl.textContent = message;
+        if (this.subtextEl && subtext) this.subtextEl.textContent = subtext;
+    },
+    
+    // Quick access methods for common loading states
+    showAuth() {
+        this.show('Authenticating', 'Verifying your credentials');
+    },
+    
+    showProfile() {
+        this.show('Loading Profile', 'Fetching your data');
+    },
+    
+    showDashboard() {
+        this.show('Initializing Dashboard', 'Loading your stats');
+    },
+    
+    showChat() {
+        this.show('Entering Chat', 'Loading conversation history');
+    },
+    
+    showMemory() {
+        this.show('Loading Memories', 'Retrieving memory network');
+    }
+};
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+    FuturisticLoader.init();
+});
+
+// Make it globally available
+window.FuturisticLoader = FuturisticLoader;
+</script>
+
+
+

@@ -177,6 +177,9 @@ def get_current_user():
     Get current authenticated user's information
     Requires valid session token in Authorization header
     """
+    import time
+    start_time = time.time()
+    
     try:
         if not clerk_auth_system:
             return jsonify({
@@ -190,16 +193,20 @@ def get_current_user():
         
         session_id = auth_header.split(' ')[1]
         
-        print(f"[INFO] Getting user profile for session: {session_id[:20]}...")
+        print(f"[PERF] /user endpoint called")
         
         # Verify session with Clerk
+        verify_start = time.time()
         clerk_user_data = clerk_auth_system.verify_clerk_token(session_id)
+        print(f"[PERF] Token verification took: {(time.time() - verify_start)*1000:.0f}ms")
         
         if not clerk_user_data:
             return jsonify({'error': 'Invalid or expired session'}), 401
         
         # Get user from Supabase with memory statistics
+        db_start = time.time()
         user = clerk_auth_system.get_user_from_clerk_id(clerk_user_data['clerk_id'])
+        print(f"[PERF] Get user from DB took: {(time.time() - db_start)*1000:.0f}ms")
         
         if not user:
             # Try to sync user if not found in database
@@ -210,22 +217,38 @@ def get_current_user():
             else:
                 return jsonify({'error': 'Failed to sync user data'}), 500
         
-        # Get memory statistics safely
+        # Get memory statistics efficiently (use COUNT instead of loading all memories)
+        total_memories = 0
+        most_recent_memory = None
         try:
             if clerk_user_memory_manager:
-                memories = clerk_user_memory_manager.get_user_memories(user['id'], 1000)
-            else:
-                memories = []
+                # Use COUNT query instead of loading all memories
+                mem_start = time.time()
+                count_result = clerk_auth_system.supabase.table('user_memories').select('id', count='exact').eq('user_id', user['id']).execute()
+                total_memories = count_result.count if count_result.count else 0
+                print(f"[PERF] Memory COUNT query took: {(time.time() - mem_start)*1000:.0f}ms")
+                
+                # Get only the most recent memory for timestamp
+                if total_memories > 0:
+                    recent_start = time.time()
+                    recent_result = clerk_auth_system.supabase.table('user_memories').select('created_at').eq('user_id', user['id']).order('created_at', desc=True).limit(1).execute()
+                    if recent_result.data:
+                        most_recent_memory = recent_result.data[0].get('created_at')
+                    print(f"[PERF] Recent memory query took: {(time.time() - recent_start)*1000:.0f}ms")
+                
+                print(f"[PERFORMANCE] Memory count: {total_memories} (efficient query)")
         except Exception as mem_error:
-            print(f"[WARN] Failed to get memories: {mem_error}")
-            memories = []
+            print(f"[WARN] Failed to get memory count: {mem_error}")
+            total_memories = 0
         
-        # Get conversation count
+        # Get conversation count efficiently
         total_conversations = 0
         try:
-            threads_result = clerk_auth_system.supabase.table('user_chat_threads').select('id').eq('user_id', user['id']).execute()
-            total_conversations = len(threads_result.data) if threads_result.data else 0
-            print(f"[INFO] User has {total_conversations} conversations")
+            conv_start = time.time()
+            threads_result = clerk_auth_system.supabase.table('user_chat_threads').select('id', count='exact').eq('user_id', user['id']).execute()
+            total_conversations = threads_result.count if threads_result.count else 0
+            print(f"[PERF] Conversation COUNT query took: {(time.time() - conv_start)*1000:.0f}ms")
+            print(f"[PERFORMANCE] Conversation count: {total_conversations} (efficient query)")
         except Exception as conv_error:
             print(f"[WARN] Failed to get conversation count: {conv_error}")
             total_conversations = 0
@@ -233,12 +256,14 @@ def get_current_user():
         user_profile = {
             'user': user,
             'stats': {
-                'total_memories': len(memories),
+                'total_memories': total_memories,
                 'total_conversations': total_conversations,
-                'average_score': sum(m.get('score', 0) for m in memories) / len(memories) if memories else 0,
-                'most_recent_memory': max(memories, key=lambda x: x.get('created_at', ''))['created_at'] if memories else None
+                'most_recent_memory': most_recent_memory
             }
         }
+        
+        total_time = (time.time() - start_time) * 1000
+        print(f"[PERF] ✅ /user endpoint total time: {total_time:.0f}ms")
         
         return jsonify({
             'success': True,

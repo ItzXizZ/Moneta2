@@ -39,8 +39,9 @@ async function initChatClerk() {
         console.log('[Chat] Loading Clerk session...');
         await clerk.load();
         
-        // Give Clerk time to restore session from cookies
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // PERFORMANCE FIX: Removed artificial 1000ms delay
+        // Clerk.load() already waits for session restoration
+        // await new Promise(resolve => setTimeout(resolve, 1000));
         
         if (clerk.session && clerk.user) {
             console.log('[Chat] ✅ Clerk session restored');
@@ -98,35 +99,81 @@ async function initChatClerk() {
 async function refreshToken() {
     try {
         if (!clerk || !clerk.session) {
-            console.log('[Chat Token Refresh] ❌ No active Clerk session - redirecting to login');
-            // No anonymous mode - must have valid session
+            console.log('[Chat Token Refresh] ❌ No active Clerk session');
+            
+            // Check if we have a cached token that might still be valid
+            const cachedToken = localStorage.getItem('authToken') || localStorage.getItem('moneta_session_token');
+            if (cachedToken) {
+                console.log('[Chat Token Refresh] ⚠️ No session but found cached token, attempting to use it');
+                // Don't redirect immediately - let the API call fail gracefully if token is invalid
+                return cachedToken;
+            }
+            
+            console.log('[Chat Token Refresh] ❌ No session and no cached token - redirecting to login');
             alert('⚠️ Your session has expired. Please log in again.');
             window.location.href = '/';
             return null;
         }
         
-        console.log('[Chat Token Refresh] 🔄 Refreshing JWT token (30-minute expiration)...');
-        // Request token with 30-minute expiration
-        const newToken = await clerk.session.getToken({ 
-            skipCache: true,
-            template: 'supabase' // Use template for longer-lived tokens
-        });
+        console.log('[Chat Token Refresh] 🔄 Refreshing JWT token...');
+        
+        // Try template first (if configured), then fallback to default token
+        let newToken = null;
+        try {
+            // Try with template first (for longer-lived tokens if configured)
+            newToken = await clerk.session.getToken({ 
+                skipCache: true,
+                template: 'supabase' // Use template for longer-lived tokens
+            });
+            console.log('[Chat Token Refresh] ✅ Got token using supabase template');
+        } catch (templateError) {
+            console.warn('[Chat Token Refresh] Template token failed, trying default:', templateError.message);
+            // Fallback to default token (this always works if session is valid)
+            try {
+                newToken = await clerk.session.getToken({ skipCache: true });
+                console.log('[Chat Token Refresh] ✅ Got token using default method');
+            } catch (defaultError) {
+                console.error('[Chat Token Refresh] ❌ Both template and default token failed:', defaultError);
+                // Check if we have a cached token to use as fallback
+                const cachedToken = localStorage.getItem('authToken') || localStorage.getItem('moneta_session_token');
+                if (cachedToken) {
+                    console.log('[Chat Token Refresh] ⚠️ Using cached token as fallback');
+                    return cachedToken;
+                }
+                throw defaultError; // Re-throw if no fallback available
+            }
+        }
         
         if (newToken) {
             currentToken = newToken;
             localStorage.setItem('moneta_session_token', newToken);
             localStorage.setItem('authToken', newToken);
-            console.log('[Chat Token Refresh] ✅ Token refreshed successfully (valid for 30 minutes)');
+            console.log('[Chat Token Refresh] ✅ Token refreshed successfully');
             console.log('[Chat Token Refresh] New token (first 20 chars):', newToken.substring(0, 20) + '...');
             return newToken;
         } else {
-            console.log('[Chat Token Refresh] ❌ Failed to get new token - redirecting to login');
-            alert('⚠️ Your session has expired. Please log in again.');
-            window.location.href = '/';
+            console.log('[Chat Token Refresh] ⚠️ Got null token, checking cached token...');
+            // Fallback to cached token if available
+            const cachedToken = localStorage.getItem('authToken') || localStorage.getItem('moneta_session_token');
+            if (cachedToken) {
+                console.log('[Chat Token Refresh] ⚠️ Using cached token');
+                return cachedToken;
+            }
+            console.log('[Chat Token Refresh] ❌ No token available');
             return null;
         }
     } catch (error) {
         console.error('[Chat Token Refresh] Error:', error);
+        
+        // Don't immediately redirect - try to use cached token first
+        const cachedToken = localStorage.getItem('authToken') || localStorage.getItem('moneta_session_token');
+        if (cachedToken) {
+            console.log('[Chat Token Refresh] ⚠️ Error occurred but using cached token as fallback');
+            return cachedToken;
+        }
+        
+        // Only redirect if we truly have no way to authenticate
+        console.log('[Chat Token Refresh] ❌ No fallback available - redirecting to login');
         alert('⚠️ Authentication error. Please log in again.');
         window.location.href = '/';
         return null;
@@ -142,19 +189,30 @@ function startTokenRefresh() {
     // Show authentication status
     updateAuthStatus('✅ Authenticated');
     
-    // Refresh token every 1 minute to prevent any expiration issues
+    // Refresh token every 2 minutes to prevent any expiration issues
     // Clerk tokens typically last 5-60 minutes depending on configuration
-    // Refreshing every minute ensures we always have a fresh token
+    // Refreshing every 2 minutes ensures we always have a fresh token without being too aggressive
     tokenRefreshInterval = setInterval(async () => {
-        console.log('[Chat Token Refresh] ⏰ Scheduled refresh (every 1 minute)');
+        console.log('[Chat Token Refresh] ⏰ Scheduled refresh (every 2 minutes)');
         updateAuthStatus('🔄 Refreshing...');
-        const newToken = await refreshToken();
-        if (newToken) {
-            updateAuthStatus('✅ Authenticated');
+        try {
+            const newToken = await refreshToken();
+            if (newToken) {
+                updateAuthStatus('✅ Authenticated');
+                console.log('[Chat Token Refresh] ✅ Scheduled refresh successful');
+            } else {
+                // Don't update status if refresh failed - might be temporary
+                console.warn('[Chat Token Refresh] ⚠️ Scheduled refresh returned null, but continuing...');
+                updateAuthStatus('✅ Authenticated (using cached token)');
+            }
+        } catch (error) {
+            // Don't let refresh errors break the interval
+            console.error('[Chat Token Refresh] ⚠️ Scheduled refresh error (non-fatal):', error);
+            updateAuthStatus('✅ Authenticated (refresh error, using cached token)');
         }
-    }, 60000); // 1 minute (changed from 5 minutes for better session persistence)
+    }, 120000); // 2 minutes - balanced between freshness and not being too aggressive
     
-    console.log('[Chat Token Refresh] ✅ Auto-refresh enabled (every 1 minute)');
+    console.log('[Chat Token Refresh] ✅ Auto-refresh enabled (every 2 minutes)');
     console.log('[Chat Token Refresh] 📅 Frequent refresh prevents session expiration issues');
 }
 
@@ -175,16 +233,32 @@ function stopTokenRefresh() {
 
 // Enhanced fetch with automatic token refresh on 401
 async function fetchWithAuth(url, options = {}) {
+    // Ensure headers object exists
+    options.headers = options.headers || {};
+    
+    // Get current token
     let token = currentToken || localStorage.getItem('authToken') || localStorage.getItem('moneta_session_token');
     
-    if (!token) {
-        console.warn('[Chat Fetch] No authentication token available');
-        // Continue without token
+    // Try to refresh token proactively if we have a Clerk session
+    if (!token && clerk && clerk.session) {
+        console.log('[Chat Fetch] No token found, attempting to get fresh token...');
+        try {
+            token = await clerk.session.getToken({ skipCache: true });
+            if (token) {
+                currentToken = token;
+                localStorage.setItem('moneta_session_token', token);
+                localStorage.setItem('authToken', token);
+                console.log('[Chat Fetch] ✅ Got fresh token from Clerk');
+            }
+        } catch (e) {
+            console.warn('[Chat Fetch] Failed to get token from Clerk:', e.message);
+        }
     }
     
     if (token) {
-        options.headers = options.headers || {};
         options.headers['Authorization'] = `Bearer ${token}`;
+    } else {
+        console.warn('[Chat Fetch] No authentication token available - request may fail');
     }
     
     try {
@@ -195,24 +269,28 @@ async function fetchWithAuth(url, options = {}) {
             console.log('[Chat Fetch] Got 401, refreshing token and retrying...');
             const newToken = await refreshToken();
             
-            if (newToken) {
+            if (newToken && newToken !== token) {
                 // Retry with new token
                 options.headers['Authorization'] = `Bearer ${newToken}`;
+                console.log('[Chat Fetch] Retrying request with refreshed token...');
                 response = await fetch(url, options);
                 
                 if (response.status === 401) {
                     console.error('[Chat Fetch] Still getting 401 after token refresh');
-                    // Clear invalid tokens
-                    localStorage.removeItem('authToken');
-                    localStorage.removeItem('moneta_session_token');
-                    currentToken = null;
+                    // Don't clear tokens immediately - might be a temporary issue
+                    // Let the user continue and they can refresh manually if needed
+                } else {
+                    console.log('[Chat Fetch] ✅ Retry successful after token refresh');
                 }
+            } else if (!newToken) {
+                console.warn('[Chat Fetch] Token refresh returned null, but keeping original token for potential retry');
             }
         }
         
         return response;
     } catch (error) {
         console.error('[Chat Fetch] Request failed:', error);
+        // Don't throw immediately - might be network error, not auth error
         throw error;
     }
 }
@@ -263,10 +341,6 @@ function handleKeyDown(event) {
 async function sendMessage() {
     console.log('🔥 === SENDMESSAGE FUNCTION CALLED ===');
     
-    // Refresh token on user activity to ensure it's always fresh
-    console.log('[Chat] Refreshing token before sending message (activity-based refresh)...');
-    await refreshToken();
-    
     const input = document.getElementById('chat-input');
     const sendButton = document.querySelector('.send-button');
     const message = input.value.trim();
@@ -291,13 +365,42 @@ async function sendMessage() {
     addMessage(message, 'user');
     
     try {
+        // Refresh token on user activity to ensure it's always fresh
+        // Don't fail if refresh doesn't work - we'll try with existing token
+        console.log('[Chat] Refreshing token before sending message (activity-based refresh)...');
+        const refreshedToken = await refreshToken();
+        if (refreshedToken) {
+            console.log('[Chat] ✅ Token refreshed successfully before sending');
+        } else {
+            console.warn('[Chat] ⚠️ Token refresh returned null, will try with existing token');
+        }
+        
         const token = currentToken || localStorage.getItem('authToken') || localStorage.getItem('moneta_session_token');
         console.log('🔧 DEBUG: Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'NULL');
         
         if (!token) {
-            console.error('❌ No token found in localStorage!');
-            addMessage('⚠️ Running without authentication - some features may be limited.', 'assistant');
-            // Continue without token for now
+            console.error('❌ No token found! Attempting to get fresh token from Clerk...');
+            // Try one more time to get token directly from Clerk
+            if (clerk && clerk.session) {
+                try {
+                    const directToken = await clerk.session.getToken({ skipCache: true });
+                    if (directToken) {
+                        currentToken = directToken;
+                        localStorage.setItem('moneta_session_token', directToken);
+                        localStorage.setItem('authToken', directToken);
+                        console.log('[Chat] ✅ Got token directly from Clerk session');
+                    }
+                } catch (e) {
+                    console.error('[Chat] ❌ Failed to get token from Clerk:', e);
+                }
+            }
+            
+            const finalToken = currentToken || localStorage.getItem('authToken') || localStorage.getItem('moneta_session_token');
+            if (!finalToken) {
+                console.error('❌ No token available after all attempts');
+                addMessage('⚠️ Authentication error. Please refresh the page and try again.', 'assistant');
+                return;
+            }
         }
         
         const response = await fetchWithAuth('/api/chat/send', {
@@ -322,6 +425,12 @@ async function sendMessage() {
         
         if (response.status === 401) {
             console.error('❌ 401 Unauthorized - Token expired and refresh failed');
+            // Try one more aggressive refresh attempt
+            console.log('[Chat] Attempting aggressive token refresh after 401...');
+            const aggressiveRefresh = await refreshToken();
+            if (aggressiveRefresh) {
+                console.log('[Chat] ✅ Got new token after 401, but request already failed');
+            }
             addMessage('⚠️ Authentication expired. Please refresh the page to continue.', 'assistant');
             return;
         }

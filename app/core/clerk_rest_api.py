@@ -200,13 +200,14 @@ class ClerkRestAPI:
             print(f"[ERROR] Clerk get user error: {e}")
             return None
     
-    def verify_and_get_user(self, session_id_or_token: str, is_jwt: bool = False) -> Optional[Dict[str, Any]]:
+    def verify_and_get_user(self, session_id_or_token: str, is_jwt: bool = False, use_cache: bool = True) -> Optional[Dict[str, Any]]:
         """
         Verify session/token and get user data in one call
         
         Args:
             session_id_or_token: Either session ID (deprecated) or JWT token (recommended)
             is_jwt: True if session_id_or_token is a JWT token, False if it's a session ID
+            use_cache: Whether to use cached user data (default: True)
         
         Returns:
             User data with Clerk info or None
@@ -230,6 +231,15 @@ class ClerkRestAPI:
                     return None
                 
                 print(f"[OK] JWT verified, user ID: {user_id}")
+                
+                # Check cache first if enabled
+                if use_cache:
+                    from app.core.user_cache import get_user_cache
+                    cache = get_user_cache()
+                    cached_user = cache.get(user_id)
+                    if cached_user:
+                        print(f"[PERFORMANCE] Skipping Clerk API call - using cached data")
+                        return cached_user
             else:
                 # Deprecated approach: Verify session ID with Clerk API
                 print("[INFO] Verifying session ID (deprecated)...")
@@ -240,7 +250,8 @@ class ClerkRestAPI:
                 
                 user_id = session['user_id']
             
-            # Get user details from Clerk API
+            # Get user details from Clerk API (only if not cached)
+            print(f"[INFO] Fetching user details from Clerk API for {user_id[:10]}...")
             user = self.get_user(user_id)
             
             if not user:
@@ -264,6 +275,12 @@ class ClerkRestAPI:
                 'created_at': user.get('created_at')
             }
             
+            # Cache the user data for future requests
+            if use_cache and is_jwt:
+                from app.core.user_cache import get_user_cache
+                cache = get_user_cache()
+                cache.set(user_id, user_data)
+            
             return user_data
             
         except Exception as e:
@@ -272,10 +289,14 @@ class ClerkRestAPI:
             print(traceback.format_exc())
             return None
     
-    def sync_user_to_supabase(self, clerk_user_data: Dict[str, Any]) -> Dict[str, Any]:
+    def sync_user_to_supabase(self, clerk_user_data: Dict[str, Any], update_last_login: bool = False) -> Dict[str, Any]:
         """
         Sync Clerk user to Supabase database
         Handles cases where user exists by clerk_id or by email
+        
+        Args:
+            clerk_user_data: User data from Clerk
+            update_last_login: If True, updates last_login timestamp (default: False to avoid unnecessary writes)
         """
         try:
             clerk_id = clerk_user_data['clerk_id']
@@ -290,18 +311,31 @@ class ClerkRestAPI:
             existing_user = self.supabase.table('users').select('*').eq('clerk_id', clerk_id).execute()
             
             if existing_user.data:
-                # User exists with this clerk_id - update it
+                # User exists with this clerk_id
                 user = existing_user.data[0]
                 user_id = user['id']
                 
-                self.supabase.table('users').update({
-                    'name': name,
-                    'email': email,
-                    'profile_image': profile_image,
-                    'last_login': datetime.utcnow().isoformat()
-                }).eq('id', user_id).execute()
+                # Only update if data has changed or if explicitly requested
+                needs_update = (
+                    user.get('name') != name or
+                    user.get('email') != email or
+                    user.get('profile_image') != profile_image or
+                    update_last_login
+                )
                 
-                print(f"[INFO] Updated user by clerk_id: {email}")
+                if needs_update:
+                    update_data = {
+                        'name': name,
+                        'email': email,
+                        'profile_image': profile_image,
+                    }
+                    if update_last_login:
+                        update_data['last_login'] = datetime.utcnow().isoformat()
+                    
+                    self.supabase.table('users').update(update_data).eq('id', user_id).execute()
+                    print(f"[INFO] Updated user by clerk_id: {email}")
+                else:
+                    print(f"[PERFORMANCE] Skipping user update - no changes detected for {email}")
             else:
                 # User doesn't exist by clerk_id, check if email exists
                 existing_by_email = self.supabase.table('users').select('*').eq('email', email).execute()
@@ -313,12 +347,15 @@ class ClerkRestAPI:
                     
                     print(f"[INFO] Found existing user by email, updating clerk_id: {email}")
                     
-                    self.supabase.table('users').update({
+                    update_data = {
                         'clerk_id': clerk_id,
                         'name': name,
                         'profile_image': profile_image,
-                        'last_login': datetime.utcnow().isoformat()
-                    }).eq('id', user_id).execute()
+                    }
+                    if update_last_login:
+                        update_data['last_login'] = datetime.utcnow().isoformat()
+                    
+                    self.supabase.table('users').update(update_data).eq('id', user_id).execute()
                     
                     print(f"[INFO] Updated user by email: {email}")
                 else:
