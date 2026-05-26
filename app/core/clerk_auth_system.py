@@ -29,8 +29,9 @@ class ClerkAuthSystem:
     
     def __init__(self):
         # Initialize Clerk
-        self.clerk_secret_key = os.getenv('CLERK_SECRET_KEY')
-        self.clerk_publishable_key = os.getenv('CLERK_PUBLISHABLE_KEY')
+        from config import config as app_config
+        self.clerk_secret_key = app_config.clerk_secret_key
+        self.clerk_publishable_key = app_config.clerk_publishable_key
         
         if not CLERK_AVAILABLE:
             print("[WARN] Clerk SDK not available - using legacy auth")

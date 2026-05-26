@@ -35,21 +35,28 @@ class Config:
         # Authentication Configuration
         self.jwt_secret = os.getenv('JWT_SECRET', 'your-secret-key-here')
         
-        # Clerk Configuration
-        self.clerk_secret_key = os.getenv('CLERK_SECRET_KEY')
-        self.clerk_publishable_key = os.getenv('CLERK_PUBLISHABLE_KEY')
+        # Environment (development = localhost, production = moneta.lol)
+        self.environment = os.getenv('ENVIRONMENT', 'development').lower()
+        
+        # Clerk Configuration — auto-select dev keys on localhost
+        self.clerk_secret_key, self.clerk_publishable_key = self._resolve_clerk_keys()
         
         # Validate Clerk configuration
         if not self.clerk_secret_key or not self.clerk_publishable_key:
             print("[WARN] Clerk authentication keys not found in environment variables")
             print("[INFO] Please add CLERK_SECRET_KEY and CLERK_PUBLISHABLE_KEY to your .env file")
+            print("[INFO] For local dev, also add CLERK_SECRET_KEY_DEV and CLERK_PUBLISHABLE_KEY_DEV (pk_test_/sk_test_)")
             print("[INFO] Clerk authentication will not be available")
         else:
-            # Check if using test or production keys
             if self.clerk_secret_key.startswith('sk_test_'):
                 print("[INFO] Using Clerk TEST keys (development mode)")
             elif self.clerk_secret_key.startswith('sk_live_'):
-                print("[OK] Using Clerk PRODUCTION keys")
+                if self.environment != 'production':
+                    print("[WARN] Production Clerk keys (sk_live_) do NOT work on localhost!")
+                    print("[WARN] Get test keys from Clerk Dashboard -> Development -> API Keys")
+                    print("[WARN] Add them as CLERK_SECRET_KEY_DEV and CLERK_PUBLISHABLE_KEY_DEV in .env")
+                else:
+                    print("[OK] Using Clerk PRODUCTION keys")
             else:
                 print("[WARN] Unrecognized Clerk key format")
             print("[OK] Clerk authentication configured")
@@ -109,6 +116,21 @@ class Config:
             except Exception as e3:
                 print(f"[ERROR] All memory systems failed: {e3}")
                 self.memory_available = False
+    
+    def _resolve_clerk_keys(self):
+        """Use dev keys locally; production keys when ENVIRONMENT=production."""
+        prod_secret = os.getenv('CLERK_SECRET_KEY')
+        prod_pub = os.getenv('CLERK_PUBLISHABLE_KEY')
+        dev_secret = os.getenv('CLERK_SECRET_KEY_DEV')
+        dev_pub = os.getenv('CLERK_PUBLISHABLE_KEY_DEV')
+        
+        if self.environment == 'production':
+            return prod_secret, prod_pub
+        
+        if dev_secret and dev_pub:
+            return dev_secret, dev_pub
+        
+        return prod_secret, prod_pub
 
 # Create global config instance
 config = Config() 

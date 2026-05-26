@@ -18,25 +18,10 @@ def hello():
 def index():
     """Main page route - Landing page with Clerk authentication"""
     # Check if Clerk is configured
-    import os
-    from pathlib import Path
-    from dotenv import load_dotenv
-    from flask import jsonify
+    from config import config
     
-    # Get the absolute path to .env file
-    # Go up from app/blueprints/main.py to the Moneta2 directory
-    base_dir = Path(__file__).resolve().parent.parent.parent
-    env_file = base_dir / '.env'
-    
-    # Force reload environment variables with explicit path
-    load_dotenv(env_file, override=True)
-    
-    clerk_key = os.getenv('CLERK_SECRET_KEY')
-    clerk_pub = os.getenv('CLERK_PUBLISHABLE_KEY')
-    
-    print(f"[DEBUG] Route '/' called")
-    print(f"[DEBUG] .env file path: {env_file}")
-    print(f"[DEBUG] .env file exists: {env_file.exists()}")
+    clerk_key = config.clerk_secret_key
+    clerk_pub = config.clerk_publishable_key
     print(f"[DEBUG] CLERK_SECRET_KEY present: {bool(clerk_key)}")
     print(f"[DEBUG] CLERK_SECRET_KEY preview: {clerk_key[:20] if clerk_key else 'None'}...")
     print(f"[DEBUG] CLERK_PUBLISHABLE_KEY present: {bool(clerk_pub)}")
