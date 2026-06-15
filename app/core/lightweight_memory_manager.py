@@ -21,6 +21,13 @@ import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
+from app.core.memory_math import (
+    initial_memory_state,
+    compute_effective_strength,
+    rank_memories_for_recall,
+    apply_recall_update,
+)
+
 class LightweightMemoryManager:
     """
     ⚠️  DEPRECATED: A lightweight memory manager that provides basic memory functionality
@@ -57,15 +64,18 @@ class LightweightMemoryManager:
             print(f"❌ Error saving memories: {e}")
     
     def add_memory(self, content: str, metadata: Dict[str, Any] = None) -> str:
-        """Add a new memory"""
+        """Add a new memory (encoding stage: first repetition)."""
         memory_id = f"mem_{len(self.memories)}_{int(datetime.now().timestamp())}"
-        
+        encoded = initial_memory_state(content, (metadata or {}).get('tags'))
+
         memory = {
             'id': memory_id,
             'content': content,
             'timestamp': datetime.now().isoformat(),
             'metadata': metadata or {},
-            'access_count': 0
+            'access_count': encoded['access_count'],
+            'score': encoded['score'],
+            'last_accessed': encoded['last_accessed'],
         }
         
         self.memories.append(memory)
@@ -76,58 +86,30 @@ class LightweightMemoryManager:
     
     def search_memories(self, query: str, top_k: int = 5, min_relevance: float = 0.1) -> List[Dict[str, Any]]:
         """
-        Search memories using simple text matching (no ML required).
-        This is a lightweight alternative to semantic search.
+        Search memories using recall probability P(recall) = S_target / ΣS.
+        Successful recall reinforces strength (read + write).
         """
         if not query.strip():
             return []
-        
-        query_lower = query.lower()
-        query_words = set(re.findall(r'\w+', query_lower))
-        
-        scored_memories = []
-        
-        for memory in self.memories:
-            content_lower = memory['content'].lower()
-            content_words = set(re.findall(r'\w+', content_lower))
-            
-            # Simple scoring based on word overlap
-            common_words = query_words.intersection(content_words)
-            score = len(common_words) / len(query_words) if query_words else 0
-            
-            # Boost score for exact phrase matches
-            if query_lower in content_lower:
-                score += 0.5
-            
-            # Boost score for partial matches
-            for word in query_words:
-                if word in content_lower:
-                    score += 0.1
-            
-            if score > 0:
-                memory_copy = memory.copy()
-                memory_copy['score'] = score
-                scored_memories.append(memory_copy)
-        
-        # Sort by score (highest first) and return top results
-        scored_memories.sort(key=lambda x: x['score'], reverse=True)
-        
-        # Filter by minimum relevance
-        filtered_memories = [m for m in scored_memories if m['score'] >= min_relevance]
-        
-        # Update access count for returned memories
-        for memory in filtered_memories[:top_k]:
-            self._update_access_count(memory['id'])
-        
-        # Return results in the expected format
+
+        ranked = rank_memories_for_recall(self.memories, query, top_k * 2)
+        filtered = [m for m in ranked if m.get('search_score', 0) >= min_relevance]
+
         results = []
-        for memory in filtered_memories[:top_k]:
+        for memory in filtered[:top_k]:
+            idx = next((i for i, m in enumerate(self.memories) if m['id'] == memory['id']), None)
+            if idx is not None:
+                self.memories[idx] = apply_recall_update(self.memories[idx])
+                memory = self.memories[idx]
+            self.save_memories()
+
+            eff = compute_effective_strength(memory)
             results.append({
                 'memory': memory,
-                'relevance_score': memory['score'],
-                'final_score': memory['score']
+                'relevance_score': memory.get('search_score', eff / 100.0),
+                'final_score': memory.get('search_score', eff / 100.0),
             })
-        
+
         return results
     
     def get_memory(self, memory_id: str) -> Optional[Dict[str, Any]]:
@@ -139,10 +121,10 @@ class LightweightMemoryManager:
         return None
     
     def _update_access_count(self, memory_id: str):
-        """Update access count for a memory"""
-        for memory in self.memories:
+        """Update access count and strength after recall."""
+        for i, memory in enumerate(self.memories):
             if memory['id'] == memory_id:
-                memory['access_count'] = memory.get('access_count', 0) + 1
+                self.memories[i] = apply_recall_update(memory)
                 break
     
     def get_recent_memories(self, limit: int = 10) -> List[Dict[str, Any]]:
@@ -195,13 +177,15 @@ class LightweightMemoryManager:
         return self.memories
     
     def _calculate_all_scores_and_connections(self, threshold: float = 0.3):
-        """Calculate memory connections (simplified for lightweight version)"""
-        # For the lightweight version, we'll return minimal connections
-        # This is a simplified version that doesn't do complex similarity calculations
+        """Calculate memory connections and apply strength model to each node."""
         connections = []
         sim_matrix = []
-        
+
         n = len(self.memories)
+        for i in range(n):
+            eff = compute_effective_strength(self.memories[i])
+            self.memories[i]['score'] = round(eff, 4)
+
         for i in range(n):
             row_connections = []
             sim_row = []

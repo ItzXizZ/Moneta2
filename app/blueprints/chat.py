@@ -263,6 +263,32 @@ def anonymous_send():
         if not message:
             return jsonify({'success': False, 'error': 'Message is required'}), 400
 
+        from app.core.memory_math import (
+            compute_effective_strength,
+            needs_sleep_consolidation,
+            apply_consolidation_update,
+            rank_memories_for_recall,
+            apply_recall_update,
+        )
+
+        # Apply forgetting / sleep consolidation to existing memories
+        updated_existing = []
+        for mem in existing_memories:
+            memory = dict(mem)
+            if needs_sleep_consolidation(memory.get('last_accessed')):
+                memory = apply_consolidation_update(memory)
+            memory['effective_strength'] = round(compute_effective_strength(memory), 4)
+            updated_existing.append(memory)
+
+        # Recall = read + write: reinforce memories relevant to this message
+        recalled = rank_memories_for_recall(updated_existing, message, limit=5)
+        recalled_ids = {m['id'] for m in recalled}
+        reinforced_existing = []
+        for memory in updated_existing:
+            if memory['id'] in recalled_ids:
+                memory = apply_recall_update(memory)
+            reinforced_existing.append(memory)
+
         # Build conversation context with system message for memory creation
         system_content = """You are a helpful AI assistant with a powerful memory system. You MUST actively create memories whenever users share personal information.
 
@@ -284,9 +310,9 @@ When you create a memory, acknowledge it naturally in your response (e.g., "I'll
         messages = [{"role": "system", "content": system_content}]
         
         # Add existing memories to context
-        if existing_memories:
+        if reinforced_existing:
             memory_text = "\n\nUSER MEMORIES (for context):\n"
-            for mem in existing_memories[-10:]:  # Last 10 memories
+            for mem in reinforced_existing[-10:]:
                 memory_text += f"- {mem.get('content', '')}\n"
             memory_text += "\nReference these memories to personalize your response when relevant."
             messages[0]["content"] += memory_text
@@ -341,18 +367,25 @@ When you create a memory, acknowledge it naturally in your response (e.g., "I'll
             response_message = response.choices[0].message
             tool_calls = response_message.tool_calls
             
-            # Process tool calls to create memories
+            # Process tool calls to create memories (encoding stage)
             created_memories = []
             if tool_calls:
                 print(f"[Anonymous Chat] AI made {len(tool_calls)} tool call(s)")
+                from app.core.memory_math import initial_memory_state
                 for tool_call in tool_calls:
                     if tool_call.function.name == "create_memory":
                         function_args = json.loads(tool_call.function.arguments)
+                        encoded = initial_memory_state(
+                            function_args.get('content', ''),
+                            function_args.get('tags', []),
+                        )
                         memory = {
                             'id': str(__import__('uuid').uuid4()),
-                            'content': function_args.get('content', ''),
-                            'tags': function_args.get('tags', []),
-                            'score': 1.0,
+                            'content': encoded['content'],
+                            'tags': encoded['tags'],
+                            'score': encoded['score'],
+                            'access_count': encoded['access_count'],
+                            'last_accessed': encoded['last_accessed'],
                             'created': __import__('datetime').datetime.now().strftime('%Y-%m-%d')
                         }
                         created_memories.append(memory)
@@ -382,7 +415,8 @@ When you create a memory, acknowledge it naturally in your response (e.g., "I'll
             return jsonify({
                 'success': True,
                 'response': ai_response,
-                'memories': created_memories  # Return created memories to frontend
+                'memories': created_memories,
+                'updated_memories': reinforced_existing,
             })
         except Exception as ai_error:
             print(f"[Anonymous Chat] OpenAI Error: {ai_error}")

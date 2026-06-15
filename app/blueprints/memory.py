@@ -282,31 +282,17 @@ def search_user_memories():
 
 
 def _calculate_memory_score(memory, all_memories):
-    """Calculate a meaningful score based on content quality, tags, and connections"""
-    score = 0
-    
-    content = memory.get('content', '')
-    score += min(len(content) * 0.1, 20)
-    
-    tags = memory.get('tags', [])
-    score += len(tags) * 2
-    
-    if any(keyword in content.lower() for keyword in ['python', 'machine learning', 'ai', 'programming']):
-        score += 15
-    
-    if len(content.split()) > 10:
-        score += 10
-    
-    connection_count = 0
-    for other_memory in all_memories:
-        if other_memory['id'] != memory['id']:
-            other_tags = set(other_memory.get('tags', []))
-            shared_tags = len(set(tags) & other_tags)
-            if shared_tags > 0:
-                connection_count += 1
-    
-    score += min(connection_count * 3, 30)
-    return max(score, 5)
+    """Node strength from the four-stage memory model (encoding → recall → sleep → forgetting)."""
+    from app.core.memory_math import (
+        compute_effective_strength,
+        recall_probability,
+        compute_all_effective_strengths,
+    )
+    strengths = compute_all_effective_strengths(all_memories)
+    effective = compute_effective_strength(memory)
+    recall_p = recall_probability(effective, strengths)
+    # Display score blends decayed strength with relative recall probability
+    return max(5.0, effective * 0.75 + recall_p * 100 * 0.25)
 
 
 def _calculate_similarity(memory1, memory2):

@@ -265,14 +265,16 @@ class ClerkUserMemoryManager:
     def add_memory_for_user(self, user_id: str, content: str, tags: list = None) -> Dict[str, Any]:
         """Add a memory to user's personal database."""
         try:
+            from app.core.memory_math import initial_memory_state
+            encoded = initial_memory_state(content, tags)
             memory_data = {
                 'user_id': user_id,
                 'content': content,
-                'tags': tags or [],
-                'score': 0.0,
+                'tags': encoded['tags'],
+                'score': encoded['score'],
                 'created_at': datetime.utcnow().isoformat(),
-                'last_accessed': datetime.utcnow().isoformat(),
-                'access_count': 0
+                'last_accessed': encoded['last_accessed'],
+                'access_count': encoded['access_count'],
             }
             
             result = self.supabase.table('user_memories').insert(memory_data).execute()
@@ -298,58 +300,67 @@ class ClerkUserMemoryManager:
             }
     
     def get_user_memories(self, user_id: str, limit: int = 50) -> list:
-        """Get all memories for a specific user."""
+        """Get all memories for a specific user with forgetting/sleep strength applied."""
         try:
+            from app.core.memory_math import (
+                compute_effective_strength,
+                needs_sleep_consolidation,
+                apply_consolidation_update,
+            )
             result = self.supabase.table('user_memories').select('*').eq('user_id', user_id).order('score', desc=True).limit(limit).execute()
-            return result.data if result.data else []
+            memories = result.data if result.data else []
+            updated = []
+            for memory in memories:
+                if needs_sleep_consolidation(memory.get('last_accessed')):
+                    consolidated = apply_consolidation_update(memory)
+                    self._persist_memory_strength(user_id, consolidated)
+                    memory = consolidated
+                memory = dict(memory)
+                memory['effective_strength'] = round(compute_effective_strength(memory), 4)
+                updated.append(memory)
+            updated.sort(key=lambda m: m.get('effective_strength', m.get('score', 0)), reverse=True)
+            return updated
         except Exception as e:
             print(f"Error getting memories for user {user_id}: {e}")
             return []
     
     def search_user_memories(self, user_id: str, query: str, limit: int = 10) -> list:
-        """Search memories for a specific user using intelligent word-based search."""
+        """Search memories using recall probability P(recall) = S_target / ΣS."""
         try:
+            from app.core.memory_math import rank_memories_for_recall, apply_recall_update
             print(f"[SEARCH] Searching user memories for: '{query}'")
-            
-            # Get all memories for the user
+
             all_memories = self.get_user_memories(user_id, 1000)
             if not all_memories:
                 return []
-            
-            # Common stop words to ignore in search
-            stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'what', 'when', 'where', 'why', 'how', 'who', 'which', 'about', 'think', 'makes', 'so', 'special'}
-            
-            # Split query into meaningful words
-            query_words = [word.lower().strip('.,!?;:') for word in query.split() if len(word) > 2 and word.lower() not in stop_words]
-            
-            scored_memories = []
-            
-            for memory in all_memories:
-                content = memory.get('content', '').lower()
-                score = 0
-                
-                # Check for exact phrase match
-                if query.lower() in content:
-                    score += 10
-                
-                # Check for meaningful word matches
-                for word in query_words:
-                    if word in content:
-                        score += 5
-                
-                # Only include memories with matches
-                if score > 0:
-                    memory_copy = memory.copy()
-                    memory_copy['search_score'] = score
-                    scored_memories.append(memory_copy)
-            
-            # Sort by score and return top results
-            scored_memories.sort(key=lambda x: x['search_score'], reverse=True)
-            return scored_memories[:limit]
-            
+
+            results = rank_memories_for_recall(all_memories, query, limit)
+            reinforced = []
+            for memory in results:
+                updated = apply_recall_update(memory)
+                self._persist_memory_strength(user_id, updated)
+                reinforced.append(updated)
+
+            return reinforced
+
         except Exception as e:
             print(f"Error searching memories for user {user_id}: {e}")
             return []
+
+    def _persist_memory_strength(self, user_id: str, memory: Dict[str, Any]):
+        """Persist strength updates after recall or sleep consolidation."""
+        try:
+            memory_id = memory.get('id')
+            if not memory_id:
+                return
+            update_data = {
+                'score': memory.get('score'),
+                'access_count': memory.get('access_count'),
+                'last_accessed': memory.get('last_accessed'),
+            }
+            self.supabase.table('user_memories').update(update_data).eq('id', memory_id).eq('user_id', user_id).execute()
+        except Exception as e:
+            print(f"Error persisting memory strength for {memory.get('id')}: {e}")
     
     def _update_user_memory_count(self, user_id: str):
         """Update the memory count for a user."""

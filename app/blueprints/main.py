@@ -1244,6 +1244,16 @@ def anonymous_mode():
                             console.log(`Received ${data.memories.length} new memories from AI`);
                             addMemoriesToNetwork(data.memories);
                         }
+                        if (data.updated_memories && data.updated_memories.length > 0) {
+                            data.updated_memories.forEach(updated => {
+                                const idx = anonymousMemories.findIndex(m => m.id === updated.id);
+                                if (idx >= 0) {
+                                    anonymousMemories[idx] = updated;
+                                }
+                            });
+                            saveMemories();
+                            initializeAnonymousNetwork();
+                        }
                     }, 500);
                 } else {
                     appendMessage(`Error: ${data.error || 'Failed to get response'}`, false);
